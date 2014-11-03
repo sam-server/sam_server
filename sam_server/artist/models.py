@@ -2,6 +2,8 @@
 from django.db import models
 
 from common.models import ModelBase
+from common.utils import uuid_to_urlpath, urlpath_to_uuid
+from django.core.urlresolvers import reverse
 #from profile.models import ArtistProfile
 
 
@@ -29,9 +31,23 @@ class Artist(ModelBase):
 
     members = models.ManyToManyField('ProtoArtist', through='ArtistMembership')
 
+    @classmethod
+    def from_urlpath(self, urlpath):
+        id = urlpath_to_uuid(urlpath)
+
+
+    @property
+    def urlpath(self):
+        return uuid_to_urlpath(self.id)
+
+    def get_absolute_url(self):
+        """
+        Returns the profile url of the artist
+        """
+        return reverse('artist.views.profile', args=[self.urlpath])
+
     def __str__(self):
         return self.name
-
 
 class ProtoArtist(ModelBase):
     """

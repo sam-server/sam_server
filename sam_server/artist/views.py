@@ -1,46 +1,55 @@
-import uuid
-import base64
+import json
+import traceback
 
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, render
+
+from common.utils import uuid_to_urlpath, urlpath_to_uuid
 from .models import Artist
-
-
-# TODO: These functions should be moved to a utility library
-# (perhaps mod_common?)
-def uuid_to_urlpath(uuid):
-    """Convert a uuid into a shorter urlsafe string using base64"""
-    b64 = base64.urlsafe_b64encode(uuid.bytes)
-    return b64.rstrip('=')
-
-
-def urlpath_to_uuid(urlpath):
-    """ A urlpath is a base64 encoded uuid with the padding chars
-    trimmed"""
-    # pad the path out to a multiple of 4 chars in length with '='
-    num_pad_chars = 4 - len(urlpath) % 4
-    if num_pad_chars > 2:
-        ## Cannot have a url path with more than two pad chars
-        raise ValueError(urlpath)
-    urlpath += '=' * num_pad_chars
-    uuid_bytes = base64.urlsafe_b64decode(urlpath)
-    return uuid.UUID(bytes=uuid_bytes)
 
 
 def profile(request, artist_id):
     """
     Gets the full artist for the given artist id
     """
+    if request.method == 'GET':
+        try:
+            return profile_GET(request, artist_id)
+        except Exception as e:
+            traceback.print_exc()
+            raise e
+    if request.method == 'POST':
+        return profile_POST(request, artist_id)
+
+
+def profile_GET(request, artist_id):
     try:
         artist_id = urlpath_to_uuid(artist_id)
     except ValueError:
         raise Http404()
+    host = request.get_host()
     artist = get_object_or_404(Artist, id=artist_id)
-    render_args = {
+    artist_json = {
+        'id': uuid_to_urlpath(artist.id),
         'name': artist.name,
-        'avatar': artist.avatar.url
+        'avatar_src': host + artist.avatar.url,
+        'href': host + artist.get_absolute_url()
     }
-    return render(request, 'web/profile/profile.html', render_args)
+
+    format = request.GET.get('format', None)
+    if format == 'json':
+        return HttpResponse(
+            json.dumps(artist_json),
+            content_type='application/json; charset=utf-8'
+        )
+    return render(request, 'web/profile/profile.html', artist_json)
+
+
+def profile_POST(request, artist_id):
+    try:
+        artist_id = urlpath_to_uuid(artist_id)
+    except ValueError:
+        raise Http404()
 
 
 def dashboard(request, artist_id):
