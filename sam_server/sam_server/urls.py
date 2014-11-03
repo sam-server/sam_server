@@ -13,9 +13,6 @@ def serve_css(request, path):
     print('Serving css file: {0} '.format(path))
     return staticfiles.serve(request, path)
 
-## Any request which matches this urlpattern will be routed
-## through the jsonrpc middleware
-services_urlpattern = r'^json/$'
 
 ## Hacks to get dart working in the development environment
 ## TODO: Should be handled better than this.

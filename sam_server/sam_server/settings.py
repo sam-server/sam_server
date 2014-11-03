@@ -44,17 +44,20 @@ INSTALLED_APPS = (
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'common.jsonrpc.middleware.JsonRpcMiddleware',
+    # Better to handle the json requests using the rest framework
+    #'common.jsonrpc.middleware.JsonRpcMiddleware',
 )
 
 ROOT_URLCONF = 'sam_server.urls'
-ROOT_SERVICESCONF = 'sam_server.services'
+# TODO: remove this completely
+#ROOT_SERVICESCONF = 'sam_server.services'
 
 WSGI_APPLICATION = 'sam_server.wsgi.application'
 
@@ -105,3 +108,7 @@ MEDIA_URL = '/media/'
 # The root directory for uploaded files on the filesystem
 # FIXME: This should be replaced by a custom storage
 MEDIA_ROOT = 'media/'
+
+## Configuration for controlling cors request handling
+# See https://github.com/ottoyiu/django-cors-headers
+CORS_ORIGIN_ALLOW_ALL = True

@@ -1,3 +1,7 @@
+## Was used by common.jsonrpc.middleware
+## TODO: Remove jsonrpc middleware completely
+# It's better to handle requests via rest.
+
 from common.jsonrpc import service
 
 import artist.services
