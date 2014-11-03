@@ -16,11 +16,6 @@ class JsonRpcError(Exception):
         self.message = message
         self.data = data
 
-    @classmethod
-    def from_exception(cls, e):
-        if isinstance(e, JsonRpcError):
-            return cls(e.errcode, e.message, e.data)
-        return cls(JsonRpcError.SERVER_ERROR, str(e))
 
     @classmethod
     def parse_error(cls, e):
@@ -51,3 +46,6 @@ class JsonRpcError(Exception):
         if self.data is not None:
             json['data'] = self.data
         return json
+
+    def __str__(self):
+        return 'JsonRpcError ({0}.errcode): {0}.message'.format(self)

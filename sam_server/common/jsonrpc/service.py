@@ -8,8 +8,7 @@ class Service(object):
     def __init__(self, name, methods):
         if SERVICE_NAME.match(name) is None:
             raise ValueError(
-                'Service name must match {0}'
-                .format(SERVICE_NAME.pattern))
+                'Service name must match {0}'.format(SERVICE_NAME.pattern))
         self.name = name
         self.methods = dict()
         for method in methods:
@@ -39,10 +38,10 @@ class Method(object):
 
     def __call__(self, http_request, params):
         try:
-            if params is list:
-                return self.function(http_request, *params)
-            elif params is map:
-                return self.function(http_request, **params)
+            if isinstance(params, list):
+                return self.func(http_request, *params)
+            elif isinstance(params, map):
+                return self.func(http_request, **params)
             else:
                 raise JsonRpcError.invalid_params('Expected a list or dict')
         except ValueError as e:

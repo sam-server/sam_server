@@ -3,6 +3,8 @@ Middleware that processes json rpc requests and handles them
 independently of the django urls
 
 """
+import traceback
+
 from .exceptions import JsonRpcError
 from .request import JsonRpcRequest, JsonRpcResponse
 from .service import Service
@@ -30,11 +32,9 @@ class JsonRpcMiddleware(object):
 
     @property
     def urlpattern(self):
-        if not hasattr(self, '_urlpattern'):
+        if self._urlpattern is None:
             self._urlpattern = services_urlpattern()
         return self._urlpattern
-
-        raise NotImplementedError('Middleware.call_method')
 
     def resolve_method(self, method):
         """

@@ -26,7 +26,7 @@ def declared_services():
         raise ImproperlyConfigured(
             "Expected 'services' attribute in {0}"
             .format(services_module.__name__))
-    return list(services_module.service_names)
+    return list(services_module.services)
 
 
 def declared_methods(module):
@@ -45,7 +45,6 @@ def root_url_module():
     Returns the module configured in settings via the django standard
     variable ROOT_URLCONF
     """
-    print('SETTINGS: {0}'.format(settings))
     try:
         return import_module(settings.ROOT_URLCONF)
     except AttributeError:

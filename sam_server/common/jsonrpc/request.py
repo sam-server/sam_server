@@ -70,12 +70,14 @@ class JsonRpcResponse(object):
         if result is not None and error is not None:
             raise ValueError('Both error and result provided on rpc response')
         self.result = result
+        print('ERROR: {0}'.format(error))
         if error is not None and not isinstance(error, JsonRpcError):
             raise ValueError('Expected a JsonRpcError, got {0}'.format(error))
         self.error = error
 
     def to_json(self):
         json = dict()
+        json['jsonrpc'] = JSONRPC_VERSION
         if self.request is not None:
             json['id'] = self.request.id
         if self.result is not None:
