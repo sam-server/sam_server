@@ -11,7 +11,12 @@ class Service(object):
                 'Service name must match {0}'
                 .format(SERVICE_NAME.pattern))
         self.name = name
-        self.methods = {m.name: m for m in methods}
+        self.methods = dict()
+        for method in methods:
+            if not isinstance(method, Method):
+                raise TypeError('Not a Method: {0}'.format(method))
+            method.service_name = name
+            self.methods[method.name] = method
 
     def get_method(self, method_name):
         try:
@@ -27,9 +32,10 @@ class Service(object):
 
 
 class Method(object):
-    def __init__(self, name, callable):
+    def __init__(self, name, func):
         self.name = name
-        self.function = callable
+        self.func = func
+        self.service_name = None
 
     def __call__(self, http_request, params):
         try:
@@ -41,3 +47,6 @@ class Method(object):
                 raise JsonRpcError.invalid_params('Expected a list or dict')
         except ValueError as e:
             raise JsonRpcError.invalid_params(str(e))
+
+    def __str__(self):
+        return '{0.service_name}.{0.name}'.format(self)
