@@ -5,6 +5,7 @@ from django.db.utils import IntegrityError
 from django.core.exceptions import ValidationError
 
 from ..models import User, UserTypeError
+from ..testing import load_test_credentials
 
 
 class MockCredentials(object):
@@ -33,6 +34,12 @@ class BasicUserTest(TestCase):
                 email='an@example.com',
                 password='hello world'
             )
+        self.assertTrue(
+            User.objects.natural_key_exists(User.Type.BASIC, 'test_user')
+        )
+        self.assertFalse(
+            User.objects.natural_key_exists(User.Type.BASIC, 'non-existent')
+        )
 
     def test_set_password(self):
         self.user.set_password('password')
@@ -52,17 +59,28 @@ class BasicUserTest(TestCase):
                 )
 
 
-class GoogleUserTest(object):
+class GoogleUserTest(TestCase):
 
     def setUp(self):
-        self.user = User.objects.create_googleplus_user(
-            email='test@example.com',
-        )
+        self.credentials = load_test_credentials()
+        self.user = User.objects.create_googleplus_user(self.credentials)
 
     def tearDown(self):
         self.user.delete()
 
+    def test_create_user(self):
+        ident = str(self.credentials.id_token['sub'])
+        self.assertEqual(self.user.user_id, 'googplus:{0}'.format(ident))
+        self.assertEqual(self.user.email, self.credentials.id_token['email'])
+        self.assertEqual(self.user.email_verified, True)
 
+        self.assertTrue(
+            User.objects.natural_key_exists(User.Type.GOOGLEPLUS, ident)
+        )
+        self.assertFalse(
+            User.objects.natural_key_exists(User.Type.GOOGLEPLUS, '1')
+        )
 
-
-
+    def test_cannot_set_password(self):
+        with self.assertRaises(UserTypeError):
+            self.user.set_password('test_password')

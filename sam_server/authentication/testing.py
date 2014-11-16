@@ -4,21 +4,30 @@
 
 ## TODO: Create a new google account just for testing
 
-import json
+import base64
 
 from oauth2client import client
 from httplib2 import Http
 
 from .settings import GOOGLE_AUTHENTICATION
 
+_test_credentials = None
 
-def create_test_credentials():
-    with open(GOOGLE_AUTH_SETTINGS['TEST_CREDENTIALS_PATH']) as f:
-        json = json.loads(f.readlines())
-    creds = client.OAuth2Credentials.from_json(json)
-    creds.refresh(Http())
-    return creds
+def load_test_credentials():
+    """
+    Load a set of test credentials from the value configured
+    in GOOGLE_AUTHENTCATION.TEST_CREDENTIALS_PATH
+    """
+    global _test_credentials
+    if _test_credentials is None:
+        with open(GOOGLE_AUTHENTICATION['TEST_CREDENTIALS_PATH']) as f:
+            content = f.read()
+        _test_credentials = client.OAuth2Credentials.from_json(content)
+        _test_credentials.refresh(Http())
+    return _test_credentials
 
 
-
-
+def make_basic_authorization_header(username, password):
+    userpass = '{0}:{1}'.format(username, password).encode('utf-8')
+    encoded = base64.b64encode(userpass)
+    return 'Basic {0}'.format(str(encoded, encoding='utf-8'))

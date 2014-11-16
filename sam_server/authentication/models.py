@@ -1,5 +1,6 @@
 import logging
 import re
+from enum import Enum
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -19,7 +20,7 @@ _VALID_USERNAME_PATTERN = re.compile(r'^[\w+_-]+$')
 class UserManager(BaseUserManager):
 
     def create_basic_user(self, username, email, password):
-        user_id = _make_user_id(self.model.BASIC_USER, username)
+        user_id = _make_user_id(User.Type.BASIC, username)
         email = self.normalize_email(email)
         user = self.model(email=email, user_id=user_id)
         user.set_password(password)
@@ -29,12 +30,16 @@ class UserManager(BaseUserManager):
     def create_googleplus_user(self, credentials):
         id_token = credentials.id_token
         email = self.normalize_email(id_token['email'])
-        user_id = _make_user_id(self.model.GOOGLEPLUS_USER, id_token['sub'])
+        user_id = _make_user_id(User.Type.GOOGLEPLUS, id_token['sub'])
         user = self.model(email=email, user_id=user_id,
                           email_verified=id_token['email_verified'])
         user.set_credential(credentials)
         user.save(using=self._db)
         return user
+
+    def natural_key_exists(self, auth_type, identifier):
+        user_id = _make_user_id(auth_type, identifier)
+        return self.filter(user_id=user_id).exists()
 
     def get_by_natural_key(self, auth_type, identifier):
         user_id = _make_user_id(auth_type, identifier)
@@ -52,20 +57,22 @@ def _check_valid_identifier_for_auth_type(auth_type, identifier):
     """
     if identifier is None:
         raise ValidationError('Identifier cannot be None')
-    if auth_type == User.BASIC_USER:
+    identifier = str(identifier)
+
+    if auth_type == User.Type.BASIC:
         if _VALID_USERNAME_PATTERN.match(identifier) is None:
             raise ValidationError(
                 'Username must consist of a sequence of letters'
                 'and digits or the characters -, +, _ ({0})'
                 .format(identifier)
             )
-    elif auth_type == User.GOOGLEPLUS_USER:
+    elif auth_type == User.Type.GOOGLEPLUS:
         if _VALID_GOOGLEID_PATTERN.match(identifier) is None:
             raise ValidationError(
                 'Google ID must be a sequence of digits ({0})'
                 .format(identifier)
             )
-    elif auth_type == User.FACEBOOK_USER:
+    elif auth_type == User.Type.FACEBOOK:
         raise NotImplementedError('Facebook user')
     else:
         raise ValidationError(
@@ -83,7 +90,7 @@ def _make_user_id(auth_type, identifier):
     ValidationError if the identifier is invalid for the auth_type
     """
     _check_valid_identifier_for_auth_type(auth_type, identifier)
-    return '{0}:{1}'.format(auth_type, identifier)
+    return '{0}:{1}'.format(auth_type.value, identifier)
 
 
 def _parse_user_id(user_id):
@@ -99,6 +106,7 @@ def _parse_user_id(user_id):
     """
     try:
         auth_type, identifier = user_id.split(':')
+        auth_type = User.Type(auth_type)
     except ValueError:
         raise ValidationError(
             "Not a string of the form 'auth_type:identifier'")
@@ -114,12 +122,13 @@ class User(models.Model):
     of the AbstractBaseUser, but needs to because the password
     field is optional on the custom user models.
     """
+    class Type(Enum):
+        GOOGLEPLUS = 'googplus'
+        FACEBOOK = 'facebook'
+        BASIC = 'userpass'
 
-    GOOGLEPLUS_USER = 'googplus'
-    FACEBOOK_USER = 'facebook'
-    BASIC_USER = 'userpass'
-
-    AUTH_TYPES = (GOOGLEPLUS_USER, FACEBOOK_USER, BASIC_USER)
+        def __str__(self):
+            return 'User.{0}'.format(super().__str__())
 
     USERNAME_FIELD = 'user_id'
     REQUIRED_FIELDS = []
@@ -139,6 +148,9 @@ class User(models.Model):
     _credential = CredentialsField(_('credentials'), blank=True, null=True)
 
     date_joined = models.DateTimeField(_('date joined'), auto_now_add=True)
+
+    # The date and time the user was last logged in
+    last_login = models.DateTimeField(_('last login'), blank=True, null=True)
 
     @property
     def auth_type(self):
@@ -164,24 +176,24 @@ class User(models.Model):
     def get_credential(self):
         if self._credential is None:
             return None
-        storage = Storage(User, 'id', self, '_credential')
+        storage = Storage(User, 'id', self.id, '_credential')
         return storage.get()
 
     def set_credential(self, credential):
-        if self.auth_type == User.BASIC_USER:
+        if self.auth_type == User.Type.BASIC:
             raise UserTypeError('Can not set credential on BASIC_USER')
-        storage = Storage(User, 'id', self, '_credential')
+        storage = Storage(User, 'id', self.id, '_credential')
         return storage.put(credential)
 
     credential = property(get_credential, set_credential)
 
     def set_password(self, raw_password):
-        if self.auth_type != User.BASIC_USER:
+        if self.auth_type != User.Type.BASIC:
             raise UserTypeError('Can only set password on BASIC_USER')
         self.password = make_password(raw_password)
 
     def check_password(self, raw_password):
-        if self.auth_type != User.BASIC_USER:
+        if self.auth_type != User.Type.BASIC:
             return False
 
         def setter(raw_password):
@@ -206,6 +218,15 @@ class User(models.Model):
 
     def __str__(self):
         return self.get_username()
+
+    def to_json(self):
+        return {
+            "resource": "authentication#user",
+            "auth_type": self.auth_type,
+            "id": self.id,
+            "date_joined": self.date_joined.isoformat(),
+            "last_login": self.last_login.isoformat()
+        }
 
 
 class UserTypeError(Exception):
