@@ -36,7 +36,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'mod_auth',
+    'authentication',
     'artist',
     'mod_venue',
     'mod_show',
@@ -51,6 +51,11 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    ## Adds a JSON attribute to request, which is filled with the
+    ## json content of the request, if the content type is application/json
+    ## and the request has a body
+    'json_utils.middleware.JsonRequestMiddleware',
     # Better to handle the json requests using the rest framework
     #'common.jsonrpc.middleware.JsonRpcMiddleware',
 )
@@ -74,6 +79,15 @@ DATABASES = {
     }
 }
 
+
+## Set up caches for the server
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': '127.0.0.1:11211'
+    }
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
 
@@ -94,12 +108,12 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     # build directory of dart project
-    "/Users/ovangle/Programming/sam_server2_workspace/cs_client/build/web",
+    "/Users/ovangle/Programming/sam_server2_workspace/cs_client/",
 )
 
 TEMPLATE_DIRS = (
     # build directory of dart project
-    "/Users/ovangle/Programming/sam_server2_workspace/cs_client/build",
+    "/Users/ovangle/Programming/sam_server2_workspace/cs_client/",
 )
 
 
@@ -112,3 +126,47 @@ MEDIA_ROOT = 'media/'
 ## Configuration for controlling cors request handling
 # See https://github.com/ottoyiu/django-cors-headers
 CORS_ORIGIN_ALLOW_ALL = True
+
+# Set up the session
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler'
+        }
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console'],
+            'propagate': True,
+            'level': 'DEBUG'
+        }
+    }
+}
+
+# Authentication
+# Important ##
+# AUTH_USER_MODEL specifies the custom user model (which supports oauth authentication)
+# Must be set before attempting to make or apply any migrations
+AUTH_USER_MODEL = 'authentication.User'
+
+AUTHENTICATION_BACKENDS = (
+    'authentication.backends.BasicUserBackend',
+    'authentication.backends.GoogleUserBackend',
+)
+
+
+# Settings for authenticating with google services
+GOOGLE_AUTHENTICATION = {
+    'CLIENT_ID': '291208690985-jpbik0s2qsrucjv1llaa4j34iktrnofk.apps.googleusercontent.com',
+    'EMAIL': '291208690985-jpbik0s2qsrucjv1llaa4j34iktrnofk@developer.gserviceaccount.com',
+    'CLIENT_SECRET': 'eL2za8MDCpvwdoUC_k5O4mPa',
+    'PATH_TO_JSON_SECRETS': '/Users/ovangle/Programming/auth/cultivated_era_759/client_secrets.json',
+    'REQUIRED_SCOPES': [
+        'https://www.googleapis.com/auth/userinfo.email',
+    ],
+    'TEST_CREDENTIALS_PATH': '/Users/ovangle/Programming/auth/cultivated_era_759/test_credentials.json',
+}
