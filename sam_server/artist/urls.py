@@ -7,6 +7,6 @@ from . import views
 
 
 urlpatterns = patterns('',
-    url(r'^(?P<artist_id>[a-zA-Z0-9_-]+)$', views.profile),
-    url(r'^(?P<artist_id>[a-zA-Z0-9_-]+)/dashboard/$', views.dashboard),
+    url(r'^(?P<handle>[\w-]+)$', views.profile_by_handle),
+    url(r'^$', views.profile),
 )
