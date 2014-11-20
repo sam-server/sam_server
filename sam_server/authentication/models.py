@@ -156,6 +156,10 @@ class User(models.Model):
     def auth_type(self):
         return _parse_user_id(self.user_id)[0]
 
+    @property
+    def auth_identifier(self):
+        return _parse_user_id(self.user_id)[1]
+
     def get_username(self):
         return self.user_id
 

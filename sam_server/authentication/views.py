@@ -5,11 +5,11 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
 from oauth2client.client import (flow_from_clientsecrets, FlowExchangeError)
+from json_utils import partial_json_response
 
 from . import settings
 from .models import User
 from .resources import UserResource
-from json_utils.field_selector import partial_response
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ def signin_as_google_user(request):
 
     user = authenticate(id_token=credentials.id_token)
     login(request, user)
-    return partial_response(request, user_resource.to_json_value(user))
+    return partial_json_response(request, user_resource.to_json_value(user))
 
 
 def register_basic_user(request):
@@ -115,4 +115,4 @@ def register_basic_user(request):
                                               password=request.JSON['password'])
     user = authenticate(username=user.username, password=user.password)
     login(request, user)
-    return partial_response(request, user_resource.to_json_value(user))
+    return partial_json_response(request, user_resource.to_json_value(user))
