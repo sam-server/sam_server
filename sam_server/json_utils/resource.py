@@ -1,5 +1,6 @@
 from dateutil.parser import parse as date_parser
 
+
 class Resource(object):
     def __init__(self, attr=None):
         self.attr = attr
@@ -51,10 +52,15 @@ class ModelResourceMeta(type):
     def __init__(cls, name, bases, ns):
         if name == 'Model':
             return
+        err_msg = None
         if 'NAME' not in ns:
-            raise TypeError('Resource {0} does not declare a class level NAME attribute')
+            err_msg = ('Resource {0} does not declare a class level NAME '
+                       'attribute').format(self.__class__.__name__)
         if 'MODEL_TYPE' not in ns:
-            raise TypeError('Resource {0} does not declare a class level MODEL_TYPE attribute')
+            err_msg = ('Resource {0} does not declare a class level '
+                       'MODEL_TYPE attribute').format(self.__class__.__name__)
+        if err_msg:
+            raise TypeError(err_msg)
         cls._fields = {k: v for k, v in ns.items() if isinstance(v, Resource)}
 
 
@@ -67,13 +73,12 @@ class Model(Resource, metaclass=ModelResourceMeta):
         return json
 
     def from_json_value(self, value):
-        model_manager = self.MODEL_TYPE.objects
-        if not hasattr(model_manager, 'from_resource'):
-            raise TypeError(('{0} resource cannot be deserialized as model manager '
-                             'does not declare a \'from_resource\' method'
-                             ).format(self.NAME))
-        data = {}
-        for field, resource in self._fields.items():
-            data[field] = resource.from_json_value(value[field])
-        return model_manager.from_resource(data)
+        """
+        From json value is only implemented on Model resources if
+        the implementating resource defines it
+        """
+        raise NotImplementedError('from_json_value')
 
+
+class ValidationError(Exception):
+    pass

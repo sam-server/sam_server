@@ -27,25 +27,11 @@ field_specifier = field (('.' field) | p_field_list)?
 
 selector := field | field_list
 """
-import json
 import re
 
-from django.http import JsonResponse
 
 FIELD_NAME = re.compile(r'[a-zA-Z0-9_]+')
 WHITESPACE = re.compile(r'\s*')
-
-
-def partial_response(request, resource):
-    """
-    Given the 'fields' specified in the query parameters of a
-    request, returns the selected resource as a partial response
-    """
-    fields = request.GET.get('fields', None)
-    if fields is not None:
-        selector = Selector.parse(fields)
-        resource = selector.select(resource)
-    return JsonResponse(json.dumps(resource))
 
 
 def _skip_ws(fields):
