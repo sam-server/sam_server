@@ -27,55 +27,18 @@ field_specifier = field (('.' field) | p_field_list)?
 
 selector := field | field_list
 """
-import re
-
-
-FIELD_NAME = re.compile(r'[a-zA-Z0-9_]+')
-WHITESPACE = re.compile(r'\s*')
-
-
-def _skip_ws(fields):
-    match = WHITESPACE.match(fields)
-    return fields[match.end():]
-
-
-def _parse_field_name(fields):
-    fields = _skip_ws(fields)
-    match = FIELD_NAME.match(fields)
-    if match is not None:
-        return fields[:match.end()], fields[match.end():]
-    return None, fields
-
-
-def _match_start(remaining, start, consume_token=True):
-    """
-    Match the string 'start' against the start of remaining, ignoring
-    whitespace
-
-    If [:consume_token:] is `True`, the token will be removed from the head
-    of remaining.
-    """
-    fields = _skip_ws(remaining)
-    if fields.startswith(start):
-        token = fields[:len(start)]
-        if consume_token:
-            remaining = remaining[len(start):]
-        return token, remaining
-    return None, fields
-
-
-class ParseError(Exception):
-    pass
+from parsers import lexer, parser
 
 
 class Selector(object):
 
     @classmethod
     def parse(cls, fields):
-        field_list, remaining = FieldListSelector.parse(fields)
-        if remaining:
-            raise ParseError('Unexpected end of selector')
-        return field_list
+        """
+        Parses a selector from the given `fields` specifier.
+        """
+        parser = SelectorParser()
+        return parser.run(fields)
 
     def select(self, json):
         raise NotImplementedError('Select')
@@ -90,28 +53,6 @@ class FieldSelector(Selector):
     def __init__(self, field, subselector=None):
         self.subselector = subselector
         self.field = field
-
-    @classmethod
-    def parse(cls, remaining):
-        """
-        field_selector := selector_name [subselector]
-        subselector := ('.' field_selector) | '(' fieldlistselector ')'
-        """
-        field_name, remaining = _parse_field_name(remaining)
-        if not field_name:
-            return None, remaining
-        field_subselector, remaining = _match_start(remaining, '.')
-        if field_subselector:
-            subselector, remaining = FieldSelector.parse(remaining)
-            if not subselector:
-                raise ParseError('Expected field name')
-            return FieldSelector(field_name, subselector), remaining
-        lookahead_list, remaining = _match_start(remaining, '(',
-                                                 consume_token=False)
-        if lookahead_list:
-            subselector, remaining = FieldListSelector.parse_subselector(remaining)
-            return FieldSelector(field_name, subselector), remaining
-        return FieldSelector(field_name), remaining
 
     def select(self, json):
         if isinstance(json, dict):
@@ -157,52 +98,8 @@ class FieldListSelector(Selector):
     """
     A FieldList selector specifies a selection of fields from
     """
-    def __init__(self, fields):
-        self.fields = list(fields)
-
-    @classmethod
-    def _parse_selector_tail(cls, remaining):
-        comma, remaining = _match_start(remaining, ',')
-        tail_end, remaining = _match_start(remaining, ')', consume_token=False)
-        if (not remaining) or tail_end:
-            return [], remaining
-        if not comma:
-            raise ParseError('Expected \',\'')
-        field, remaining = FieldSelector.parse(remaining)
-        if not field:
-            raise ParseError('Expected field selector')
-        tail, remaining = cls._parse_selector_tail(remaining)
-        tail.insert(0, field)
-        return tail, remaining
-
-    @classmethod
-    def parse(cls, remaining):
-        """
-        list_subselector := '(' list_selector ')'
-        list_selector := field_selector selector_tail
-        list_selector_tail := (',' field_selector) list_selector_tail?
-        """
-        field, remaining = FieldSelector.parse(remaining)
-        tail, remaining = cls._parse_selector_tail(remaining)
-        tail.insert(0, field)
-        return FieldListSelector(tail), remaining
-
-    @classmethod
-    def parse_subselector(cls, remaining):
-        """
-        A selector used to select multiple fields when not at
-        the top level of the remaining must be parenthesised
-        subselector := '(' field_list_selector ')'
-        """
-
-        open_parens, remaining = _match_start(remaining, '(')
-        if not open_parens:
-            raise ParseError('Expected open parens')
-        subselector, remaining = cls.parse(remaining)
-        close_parens, remaining = _match_start(remaining, ')')
-        if not close_parens:
-            raise ParseError('')
-        return subselector, remaining
+    def __init__(self, fields=None):
+        self.fields = list(fields or [])
 
     def select(self, json):
         if isinstance(json, dict):
@@ -237,3 +134,74 @@ class FieldListSelector(Selector):
 
     def __str__(self):
         return ', '.join(map(str, self.fields))
+
+
+class SelectorParser(parser.Parser):
+    LEXER_TOKENS = [
+        ('L_PARENS', lexer.LiteralToken('(')),
+        ('R_PARENS', lexer.LiteralToken(')')),
+        ('COMMA', lexer.LiteralToken(',')),
+        ('PERIOD', lexer.LiteralToken('.')),
+        ('NAME', lexer.RegexToken(r'[a-zA-Z0-9_]+')),
+    ]
+
+    def __init__(self):
+        lex = lexer.Lexer(self.LEXER_TOKENS)
+        super(SelectorParser, self).__init__(lex)
+
+    def begin(self):
+        return self.parse_field_list()
+
+    def parse_field(self):
+        token = self.move_next()
+        if not token or token.name != 'NAME':
+            raise ParseError(self.position, 'Expected a field name')
+        field_name = token.string
+
+        token = self.move_next(lookahead=True)
+        if not token or token.name in {'R_PARENS', 'COMMA'}:
+            return FieldSelector(field_name)
+        elif token.name == 'PERIOD':
+            self.move_next()
+            subselector = self.parse_field()
+        elif token.name == 'L_PARENS':
+            subselector = self.parse_parens_field_list()
+        else:
+            raise ParseError(self.position,
+                             'Unexpected token in stream ({0})'.format(token))
+        return FieldSelector(field_name, subselector)
+
+    def parse_field_list(self):
+        field_list = []
+        token = self.move_next(lookahead=True)
+
+        while token and token.name != 'R_PARENS':
+            if token.name == 'NAME':
+                field_list.append(self.parse_field())
+            else:
+                raise ParseError('Expected a field selector')
+            token = self.move_next(lookahead=True)
+            if token is None or token.name == 'R_PARENS':
+                pass
+            elif token.name == 'COMMA':
+                self.move_next()
+            else:
+                raise ParseError(self.position,
+                                 'Expected comma or end of selector list')
+            token = self.move_next(lookahead=True)
+        return FieldListSelector(field_list)
+
+    def parse_parens_field_list(self):
+        """ A parenthesised field list """
+        token = self.move_next()
+        if token is None or token.name != 'L_PARENS':
+            raise ParseError(self.position,
+                             'Expected start of selector list')
+        field_list = self.parse_field_list()
+        token = self.move_next()
+        if token is None or token.name != 'R_PARENS':
+            raise ParseError(self.position,
+                             'Expected end of selector list')
+        return field_list
+
+

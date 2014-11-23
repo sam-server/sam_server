@@ -1,6 +1,6 @@
 
 from django.http import JsonResponse
-from field_selector import Selector
+from .field_selector import Selector
 
 
 def partial_json_response(request, resource):
