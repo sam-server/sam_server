@@ -1,3 +1,4 @@
+from enum import Enum
 from datetime import datetime
 import uuid
 
@@ -37,6 +38,15 @@ class ResourcesTest(TestCase):
         with self.assertRaises(ValueError):
             r2.to_json(None)
 
+    def test_enum_resource(self):
+        class MyEnum(Enum):
+            a = 1
+            b = 2
+            c = 3
+        r = resources.EnumResource(enum_type=MyEnum)
+        self.assertEqual(r.to_json(MyEnum.a), 1)
+        self.assertEqual(r.to_python(3), MyEnum.c)
+
     def test_datetime_resource(self):
         r = resources.DateTimeResource()
         dt = datetime.fromtimestamp(0)
@@ -55,7 +65,7 @@ class ResourcesTest(TestCase):
         self.assertEqual(r_object.to_python(resource), resource)
         self.assertEqual(r_object.to_json(resource), resource)
 
-        r_uuid = resources.ListResource(resources.UUIDResource())
+        r_uuid = resources.ListResource(resources.UUIDResource(required=False))
         value = [uuid.UUID(int=0), uuid.UUID(int=1), None]
         resource = ['0' * 32, ('0' * 31) + '1', None]
         self.assertEqual(r_uuid.to_json(value), resource)

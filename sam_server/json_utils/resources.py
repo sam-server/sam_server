@@ -1,5 +1,5 @@
 from datetime import datetime
-import inspect
+from enum import Enum
 import uuid
 
 from django.db import models
@@ -9,7 +9,7 @@ _NONE_TYPE = type(None)
 
 
 class Resource(object):
-    def __init__(self, required=False):
+    def __init__(self, required=True):
         self.required = required
 
     def check_mandatory(self, value):
@@ -27,6 +27,8 @@ class _SimpleResource(Resource):
 
     def to_json(self, value):
         self.check_mandatory(value)
+        if value is None:
+            return value
         if not isinstance(value, self._TYPE):
             raise ValueError('Not an instance of {0}'.format(self._TYPE))
         return value
@@ -82,9 +84,35 @@ class DateTimeResource(Resource):
 
     def to_json(self, value):
         self.check_mandatory(value)
+        if value is None:
+            return value
         if not isinstance(value, datetime):
             raise TypeError('Not a date or datetime object: {0}'.format(value))
         return value.isoformat()
+
+
+class EnumResource(Resource):
+    def __init__(self, enum_type=None, **kwargs):
+        if (enum_type is None
+                or not isinstance(enum_type, type)
+                or Enum not in enum_type.__mro__):
+            raise ValueError('EnumResource requires an enum_type')
+        self.enum_type = enum_type
+        super().__init__(**kwargs)
+
+    def to_python(self, resource):
+        self.check_mandatory(resource)
+        if resource is None:
+            return None
+        return self.enum_type(resource)
+
+    def to_json(self, value):
+        self.check_mandatory(value)
+        if value is None:
+            return None
+        if not isinstance(value, self.enum_type):
+            raise ValueError('Not a value of {0}'.format(self.enum_type))
+        return value.value
 
 
 class UUIDResource(Resource):
@@ -240,13 +268,15 @@ class ModelResource(Resource, metaclass=_ModelResourceMeta):
             raise TypeError('Not a model: {0}'.format(model))
 
         resource = dict()
-        for k, field_resource in self._resource_fields.items():
-            custom_getter_name = 'get_model_{0}'.format(k)
+        for field, field_resource in self._resource_fields.items():
+            custom_getter_name = 'get_model_{0}'.format(field)
             if hasattr(self, custom_getter_name):
                 raw_value = getattr(self, custom_getter_name)(model)
             else:
-                raw_value = getattr(model, k)
-            resource[k] = field_resource.to_json(raw_value)
+                raw_value = getattr(model, field)
+            field_value = field_resource.to_json(raw_value)
+            if field_value is not None:
+                resource[field] = field_value
         resource['kind'] = self.KIND
         return resource
 
