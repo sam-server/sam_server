@@ -20,6 +20,16 @@ class Resource(object):
         raise NotImplementedError()
 
     def to_python(self, resource):
+        """
+        Convert the resource value to a python value
+        """
+        raise NotImplementedError()
+
+    @property
+    def discovery(self):
+        """
+        A DiscoveryResource object representing the resource
+        """
         raise NotImplementedError()
 
 
@@ -48,6 +58,7 @@ class ObjectResource(_SimpleResource):
     on get or set
     """
     _TYPE = object
+    KIND = 'dynamic'
 
     def to_json(self, value):
         """
@@ -58,9 +69,13 @@ class ObjectResource(_SimpleResource):
         if value is None:
             return value
         if not isinstance(value, (str, float, int, )):
-            raise TypeError('Only None and float, int and str values '
+            raise TypeError('Only None and bool, float, int and str values '
                             'can be encoded to json by an object resource')
         return value
+
+
+class BoolResource(_SimpleResource):
+    _TYPE = bool
 
 
 class IntegerResource(_SimpleResource):
@@ -76,6 +91,7 @@ class StringResource(_SimpleResource):
 
 
 class DateTimeResource(Resource):
+
     def to_python(self, resource):
         self.check_mandatory(resource)
         if resource is None:
@@ -92,6 +108,7 @@ class DateTimeResource(Resource):
 
 
 class EnumResource(Resource):
+
     def __init__(self, enum_type=None, **kwargs):
         if (enum_type is None
                 or not isinstance(enum_type, type)
@@ -254,7 +271,7 @@ class ModelResource(Resource, metaclass=_ModelResourceMeta):
 
     def to_json(self, model):
         """
-        A model can be set from a django ORM model. If a 'get_model_(field_name)'
+        A model can be set from a django ORM model. If a 'get_(field_name)'
         method is defined on the resource definition, it will be passed the model
         as argument to get the associated value.
 
@@ -264,12 +281,9 @@ class ModelResource(Resource, metaclass=_ModelResourceMeta):
         if model is None:
             return None
 
-        if not isinstance(model, models.Model):
-            raise TypeError('Not a model: {0}'.format(model))
-
         resource = dict()
         for field, field_resource in self._resource_fields.items():
-            custom_getter_name = 'get_model_{0}'.format(field)
+            custom_getter_name = 'get_{0}'.format(field)
             if hasattr(self, custom_getter_name):
                 raw_value = getattr(self, custom_getter_name)(model)
             else:

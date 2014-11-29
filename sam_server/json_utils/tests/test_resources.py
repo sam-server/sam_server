@@ -15,7 +15,7 @@ class MyModelResource(resources.ModelResource):
     required_field = resources.IntegerResource(required=True)
     custom_getter_field = resources.StringResource(required=True)
 
-    def get_model_custom_getter_field(self, model):
+    def get_custom_getter_field(self, model):
         return '**custom_getter**'
 
 
