@@ -18,12 +18,13 @@ class Token(object):
 
 
 class LiteralToken(object):
-    def __init__(self, string):
-        self.string = string
+    def __init__(self, *strings):
+        self.strings = strings
 
     def match(self, input, position):
-        if input.startswith(self.string, position):
-            return position + len(self.string)
+        for string in self.strings:
+            if input.startswith(string, position):
+                return position + len(string)
 
 
 class RegexToken(object):
