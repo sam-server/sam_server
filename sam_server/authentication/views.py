@@ -5,7 +5,7 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login
 
 from oauth2client.client import (flow_from_clientsecrets, FlowExchangeError)
-from json_utils import partial_json_response
+from ext_utils.json import partial_json_response
 
 from . import settings
 from .models import User

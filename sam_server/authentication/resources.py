@@ -1,4 +1,4 @@
-from json_utils.resources import *
+from ext_utils.json.resources import *
 
 from . import models
 
