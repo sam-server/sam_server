@@ -6,7 +6,7 @@ from django import http
 from django.shortcuts import get_object_or_404, render
 
 
-from json_utils.resource import partial_response
+from ext_utils.json import partial_json_response
 from .models import Artist
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def profile_by_handle(request, handle):
     resource = artist.get_resource()
     format = request.GET.get('format', None).lower()
     if format == 'json':
-        return partial_response(request, resource)
+        return partial_json_response(request, resource)
     return render(request, 'web/profile/profile.html', resource)
 
 
@@ -58,7 +58,7 @@ def create_artist_resource(request):
             'Could not generate unique handle from name')
     artist = Artist(name=name, handle=handle)
     artist.save()
-    return partial_response(artist.get_resource(),
+    return partial_json_response(artist.get_resource(),
                             fields=request.GET.get('fields', None))
 
 def dashboard(request, artist_id):
@@ -85,7 +85,7 @@ def get_profile(request):
         raise http.Http404(e)
     resource = artist.get_resource()
     if format == 'JSON':
-        return partial_response(resource, query_set.get('fields', None))
+        return partial_json_response(resource, query_set.get('fields', None))
 
 
 
