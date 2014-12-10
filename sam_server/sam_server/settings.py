@@ -26,6 +26,9 @@ TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
 
+## The production hostname of the server
+## TODO: Should be https
+HOST_URI = 'http://localhost:8000'
 
 # Application definition
 
@@ -38,8 +41,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'authentication',
     'artist',
-    'mod_venue',
-    'mod_show',
+    'asset',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -55,14 +57,12 @@ MIDDLEWARE_CLASSES = (
     ## Adds a JSON attribute to request, which is filled with the
     ## json content of the request, if the content type is application/json
     ## and the request has a body
-    'json_utils.middleware.JsonRequestMiddleware',
+    'ext_utils.json.middleware.JsonRequestMiddleware',
     # Better to handle the json requests using the rest framework
     #'common.jsonrpc.middleware.JsonRpcMiddleware',
 )
 
 ROOT_URLCONF = 'sam_server.urls'
-# TODO: remove this completely
-#ROOT_SERVICESCONF = 'sam_server.services'
 
 WSGI_APPLICATION = 'sam_server.wsgi.application'
 
