@@ -18,17 +18,23 @@ ISO_4217_PATH = os.path.join(settings.BASE_DIR, 'common', 'utility_files',
 @total_ordering
 class MoneyAmount(object):
 
-    def __init__(self, code, value):
+    def __init__(self, code_or_str, value=None):
         """
         Creates a new money amount using the given value.
         If the amount is a Rational or Decimal value it will be converted
         to an integer using bankers rounding
+
+        If value is None, then the value is
         """
+        if value is None:
+            return MoneyAmount.parse(code_or_str)
+        else:
+            self.code = code_or_str
+
         if isinstance(value, Decimal):
             value = Fraction.from_decimal(value)
         elif not isinstance(value, Rational):
             raise TypeError('Expected a rational value')
-        self.code = code
         self.value = round(value)
 
     @classmethod
@@ -91,6 +97,9 @@ class MoneyAmount(object):
         elif not isinstance(frac, Rational):
             raise TypeError('Expected a Decimal or a numbers.Rational value')
         return MoneyAmount(self.code, frac * self.value)
+
+    def __repr__(self):
+        return str(self)
 
     def __str__(self):
         major_units, minor_units = self.currency.from_integer_value(self.value)

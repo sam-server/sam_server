@@ -1,5 +1,5 @@
 
-from json_utils.resources import Resource
+from ext_utils.json.resources import Resource
 from .currency import MoneyAmount
 
 
