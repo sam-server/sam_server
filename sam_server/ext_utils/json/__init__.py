@@ -9,7 +9,7 @@ def partial_json_response(request, resource):
     and returns the partial response which results from selecting
     said fields from the provided resource
     """
-    fields = request.GET('fields', None)
+    fields = request.GET.get('fields', None)
     if fields is not None:
         selector = Selector.parse(fields)
         resource = selector.select(resource)

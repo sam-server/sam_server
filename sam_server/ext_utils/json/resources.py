@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from operator import attrgetter
 import uuid
 
 from django.db import models
@@ -269,13 +270,25 @@ class ModelResource(Resource, metaclass=_ModelResourceMeta):
             model_resource[key] = field_resource.to_python(value)
         return model_resource
 
+    def _resolve_field_value(self, field_name, model):
+        custom_getter_name = 'get_{0}'.format(field_name)
+        if hasattr(self, custom_getter_name):
+            return getattr(self, custom_getter_name)(model)
+        if hasattr(model, '__getitem__'):
+            return model[field_name]
+        return getattr(model, field_name)
+
     def to_json(self, model):
         """
-        A model can be set from a django ORM model. If a 'get_(field_name)'
-        method is defined on the resource definition, it will be passed the model
-        as argument to get the associated value.
+        Converts the given json object into json using the resources
+        defined at the class level.
 
-        Otherwise, the model can
+        The value corresponding to a field is resolved by trying, in order:
+        - The class declaration is searched for a 'get_(field_name)' method.
+          The method will be called with the model instance as the sole argument
+        - If the model delcares a '__getitem__' method, an item lookup will be
+          made with the field name as argument
+        - Otherwise, an attribute lookup will be performed on the model.
         """
         self.check_mandatory(model)
         if model is None:
@@ -283,11 +296,7 @@ class ModelResource(Resource, metaclass=_ModelResourceMeta):
 
         resource = dict()
         for field, field_resource in self._resource_fields.items():
-            custom_getter_name = 'get_{0}'.format(field)
-            if hasattr(self, custom_getter_name):
-                raw_value = getattr(self, custom_getter_name)(model)
-            else:
-                raw_value = getattr(model, field)
+            raw_value = self._resolve_field_value(field, model)
             field_value = field_resource.to_json(raw_value)
             if field_value is not None:
                 resource[field] = field_value
