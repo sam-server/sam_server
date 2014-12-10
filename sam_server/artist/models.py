@@ -2,7 +2,6 @@
 from django.db import models
 
 from common.models import ModelBase
-from common.utils import get_image_resource
 from django.core.urlresolvers import reverse
 #from profile.models import ArtistProfile
 
@@ -43,7 +42,6 @@ class Artist(ModelBase):
             'name': self.name,
             'country': self.country,
             'href': self.get_absolute_url(),
-            'avatar': get_image_resource(self.avatar, "{0}".format(self.name))
         }
         resource['members'] = [m.get_resource() for m in self.members.all()]
         return resource
