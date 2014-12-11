@@ -1,22 +1,33 @@
+import os
+from django.conf import settings
+
 from django.conf.urls import patterns, include, url
 from django.conf.urls.static import static
 from django.contrib import admin
 import django.contrib.staticfiles.views as staticfiles
 
-from . import settings
+from django.http import HttpResponse
+from django.core.context_processors import csrf
+from ext_utils.html.render import render
+
+
 import artist.urls
 import authentication.urls
 import asset.urls
 
+TEMPLATES_DIR = os.path.join(settings.BASE_DIR, 'sam_server', 'templates')
+
 
 def serve_dart_file(request, path):
     ## Always serve the compiled js file
+    print('serving dart file: {0}'.format(path))
     response = staticfiles.serve(request, path)
     response['Content-Type'] = 'application/dart'
     return response
 
 
 def serve_package(request, path):
+    print('serving dart package file: {0}'.format(path))
     response = staticfiles.serve(request, path)
     if path.endswith('.dart'):
         response['Content-Type'] = 'application/dart'
@@ -26,6 +37,24 @@ def serve_package(request, path):
 def serve_css(request, path):
     print('Serving css file: {0} '.format(path))
     return staticfiles.serve(request, path)
+
+
+def serve_index(request):
+    """
+    Serves the `index.html` from the root of the template
+    """
+    context = {
+        'init_url':  '/assets/user/3',
+    }
+    context.update(csrf(request))
+    print(context)
+    rendered_template = render(
+        os.path.join(TEMPLATES_DIR, 'index.html'),
+        context
+    )
+    print(rendered_template)
+    return HttpResponse(rendered_template)
+
 
 ## Hacks to get dart working in the development environment
 ## TODO: Should be handled better than this.
@@ -42,6 +71,7 @@ urlpatterns += patterns('',
     # Examples:
     # url(r'^$', 'sam_server.views.home', name='home'),
     # url(r'^blog/', include('blog.urls')),
+    url(r'^$', serve_index),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^artist/', include(artist.urls)),
     url(r'^auth/', include(authentication.urls)),

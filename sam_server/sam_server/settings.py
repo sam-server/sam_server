@@ -108,12 +108,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     # build directory of dart project
-    "/Users/ovangle/Programming/sam_server2_workspace/cs_client/",
-)
-
-TEMPLATE_DIRS = (
-    # build directory of dart project
-    "/Users/ovangle/Programming/sam_server2_workspace/cs_client/",
+    "/Users/ovangle/Programming/sam_server3_workspace/sam_server_web_client",
 )
 
 
@@ -123,7 +118,7 @@ MEDIA_URL = '/media/'
 # FIXME: This should be replaced by a custom storage
 MEDIA_ROOT = 'media/'
 
-## Configuration for controlling cors request handling
+# Configuration for controlling cors request handling
 # See https://github.com/ottoyiu/django-cors-headers
 CORS_ORIGIN_ALLOW_ALL = True
 
