@@ -1,12 +1,15 @@
 import uuid
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseNotAllowed
+from django.core.context_processors import csrf
 
 from ext_utils.json import partial_json_response
+from ext_utils.html import render
 
 from authentication.models import User
 
 from .models import Asset
 from .resources import AssetResource, AssetListResource
+
 
 ASSET_RESOURCE = AssetResource()
 ASSET_LIST_RESOURCE = AssetListResource()
@@ -19,13 +22,40 @@ def asset(request, user_id=None, asset_id=None):
     except Asset.DoesNotExist:
         return JsonResponse({'error': 'Does not exist'}, status=404)
 
+    resource = ASSET_RESOURCE.to_json(asset)
     if request.method == 'GET':
-        return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
+        request_format = request.GET.get('format')
+        if request_format == 'json':
+            return partial_json_response(request, resource)
+        else:
+            resource.update(csrf(request))
+            return render('asset/asset.html', resource)
     elif request.method == 'PUT':
-        ## update an asset
-        raise NotImplementedError()
+        return update_asset(request, asset)
     else:
-        raise NotImplementedError()
+        return HttpResponseNotAllowed(['GET', 'PUT'])
+
+
+def update_asset(request, asset):
+    if request.JSON is None:
+        return JsonResponse({'error': 'Expected JSON content'}, status=400)
+    try:
+        resource = ASSET_RESOURCE.to_python(request.JSON)
+    except ValueError as e:
+        ## TODO: Make a ResourceError which includes information
+        ## about the valid fields as a json response
+        return JsonResponse({'error': str(e)}, status=400)
+
+    print('Received update: {0}'.format(resource))
+
+    if 'name' in resource:
+        asset.name = resource['name']
+    if 'description' in resource:
+        asset.description = resource['description']
+    if 'price' in resource:
+        asset.price = resource['price']
+    asset.save()
+    return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
 
 def query_asset(request):
