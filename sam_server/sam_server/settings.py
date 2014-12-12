@@ -106,10 +106,13 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+
 STATICFILES_DIRS = (
     # build directory of dart project
     "/Users/ovangle/Programming/sam_server3_workspace/sam_server_web_client",
 )
+
+WEBAPP_ROOT = STATICFILES_DIRS[0]
 
 
 MEDIA_URL = '/media/'
@@ -165,3 +168,4 @@ GOOGLE_AUTHENTICATION = {
     ],
     'TEST_CREDENTIALS_PATH': '/Users/ovangle/Programming/auth/cultivated_era_759/test_credentials.json',
 }
+

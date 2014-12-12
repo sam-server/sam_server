@@ -8,30 +8,15 @@ import django.contrib.staticfiles.views as staticfiles
 
 from django.http import HttpResponse
 from django.core.context_processors import csrf
-from ext_utils.html.render import render
-
+from ext_utils.html import render, serve_html_file
+from ext_utils.dart import serve_dart_file
+from ext_utils.js import serve_js_file
 
 import artist.urls
 import authentication.urls
 import asset.urls
 
 TEMPLATES_DIR = os.path.join(settings.BASE_DIR, 'sam_server', 'templates')
-
-
-def serve_dart_file(request, path):
-    ## Always serve the compiled js file
-    print('serving dart file: {0}'.format(path))
-    response = staticfiles.serve(request, path)
-    response['Content-Type'] = 'application/dart'
-    return response
-
-
-def serve_package(request, path):
-    print('serving dart package file: {0}'.format(path))
-    response = staticfiles.serve(request, path)
-    if path.endswith('.dart'):
-        response['Content-Type'] = 'application/dart'
-    return response
 
 
 def serve_css(request, path):
@@ -47,11 +32,7 @@ def serve_index(request):
         'init_url':  '/assets/user/3',
     }
     context.update(csrf(request))
-    print(context)
-    rendered_template = render(
-        os.path.join(TEMPLATES_DIR, 'index.html'),
-        context
-    )
+    rendered_template = render('index.html', context)
     print(rendered_template)
     return HttpResponse(rendered_template)
 
@@ -60,9 +41,10 @@ def serve_index(request):
 ## TODO: Should be handled better than this.
 if settings.DEBUG:
     urlpatterns = patterns('',
-        url(r'^.*(?P<path>packages/.*)$', serve_package),
         url(r'^(?P<path>.*?\.dart)$', serve_dart_file),
-        url(r'^(?P<path>css/.*\.css)$', serve_css),
+        url(r'^(?P<path>.*?\.html)$', serve_html_file),
+        url(r'^(?P<path>.*?\.js)$', serve_js_file),
+        url(r'^(?P<path>.*?\.css)$', serve_css),
     )
 else:
     urlpatterns = patterns('')
@@ -79,4 +61,3 @@ urlpatterns += patterns('',
 )
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
