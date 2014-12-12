@@ -1,13 +1,10 @@
+from ..base.static_content import serve_static_content
 
-from django.conf import settings
-from django.contrib.staticfiles import views
+
+INSTALLED_APP_PATHS = dict()
 
 
 def serve_dart_file(request, path):
-    print(path)
-    if not settings.DEBUG:
-        raise Http404('\'.dart\' files not served when not in DEBUG mode')
-    response = views.serve(request, path)
+    response = serve_static_content(request, path)
     response['Content-Type'] = 'application/dart'
-    response['Content-Cache'] = 'no-store'
     return response
