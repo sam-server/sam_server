@@ -6,6 +6,7 @@ from ext_utils.json import partial_json_response
 from ext_utils.html import render
 
 from authentication.models import User
+from authentication.decorators import authorization_required
 
 from .models import Asset
 from .resources import AssetResource, AssetListResource
@@ -67,6 +68,7 @@ def query_asset(request):
         return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
 
+@authorization_required
 def list_user_assets(request, user_id):
     if request.method == 'GET':
         try:
