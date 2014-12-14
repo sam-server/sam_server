@@ -1,6 +1,7 @@
 import logging
 import re
 from enum import Enum
+import base64
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -162,6 +163,39 @@ class User(models.Model):
 
     def get_username(self):
         return self.user_id
+
+    def get_auth_token(self, raw_password=None):
+        """
+        Return a bytestring containing a valid authorization token.
+        If the user is a BASIC user, then a raw password must be provided.
+        """
+        if self.auth_type == self.Type.BASIC:
+            if raw_password is None:
+                raise ValueError('raw_password must be provided')
+            userpass = '{0}:{1}'.format(self.auth_identifier, raw_password)
+            userpass_bytes = userpass.encode('utf-8')
+            b64_encoded = base64.urlsafe_b64encode(userpass_bytes)
+            auth_token_bytes = b'Basic ' + b64_encoded
+            return str(auth_token_bytes, encoding='utf-8')
+        else:
+            raise NotImplementedError('User.get_auth_token')
+
+    def check_auth_token(self, token):
+        components = token.split(' ')
+        if len(components) != 2:
+            return False
+        auth_type = components[0]
+        if auth_type == 'Basic':
+            b64_encoded = components[1].encode('utf-8')
+            userpass_bytes = base64.urlsafe_b64decode(b64_encoded)
+            userpass = str(userpass_bytes, 'utf-8').split(':')
+            try:
+                user = User.objects.get_by_natural_key(User.Type.BASIC, userpass[0])
+            except User.DoesNotExist:
+                return False
+            return user.check_password(userpass[1])
+        else:
+            raise NotImplementedError()
 
     def is_anonymous(self):
         """

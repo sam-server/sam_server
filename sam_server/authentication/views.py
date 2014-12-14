@@ -1,11 +1,17 @@
+from datetime import datetime, timedelta
 import logging
 from django.http import (JsonResponse, HttpResponseNotAllowed)
+from django.http import (HttpResponseForbidden)
 from django.shortcuts import render
+from django.core.context_processors import csrf
 
 from django.contrib.auth import authenticate, login
 
 from oauth2client.client import (flow_from_clientsecrets, FlowExchangeError)
 from ext_utils.json import partial_json_response
+
+## TODO: Replace all renders by this
+from ext_utils.html import render as render2
 
 from . import settings
 from .models import User
@@ -14,6 +20,63 @@ from .resources import UserResource
 logger = logging.getLogger(__name__)
 
 user_resource = UserResource()
+
+
+def login_user(request):
+    """
+    Log in a user via basic authentication
+    """
+    if request.method == 'GET':
+        context = {}
+        context.update(csrf(request))
+        return render2('auth/login.html', context)
+    elif request.method == 'POST':
+        if request.JSON is None:
+            return JsonResponse(
+                {'error': 'not a json request'},
+                400
+            )
+        resource = user_resource.to_python(request.JSON)
+        username = resource.get('username')
+        if username is not None:
+            password = resource.get('password')
+            if password is None:
+                return HttpResponseForbidden('password required for user resource')
+
+            try:
+                user = User.objects.get_by_natural_key(User.Type.BASIC, username)
+            except User.DoesNotExist:
+                return JsonResponse({'error': 'No such user'}, status=403)
+
+            if not user.check_password(password):
+                return JsonResponse({'error': 'Invalid password'}, status=403)
+
+            remembered = resource.get('remembered', False)
+
+            result_resource = user_resource.to_json(user)
+            del result_resource['password']
+            response = JsonResponse(result_resource)
+
+            auth_token = user.get_auth_token(resource['password'])
+            print('AUTH TOKEN: {0}'.format(auth_token))
+
+            print('Remembered: {0}'.format(remembered))
+            auth_token_expires = None
+            if remembered:
+                auth_token_expires = datetime.now() + timedelta(weeks=1)
+
+            response.set_cookie(
+                'authToken',
+                auth_token,
+                expires=auth_token_expires
+            )
+
+            return response
+        else:
+            ## TODO: Handle other types of login
+            raise NotImplementedError()
+    else:
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 def register(request):
