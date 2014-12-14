@@ -67,6 +67,12 @@ class CurrencyTest(TestCase):
             (4, 0)
         )
 
+    def test_currency_symbol(self):
+        currency = Currency.from_code('AUD')
+        self.assertEqual(currency.symbol, '$')
+        currency = Currency.from_code('EUR')
+        self.assertEqual(currency.symbol, '€')
+
 
 class ParsingTest(TestCase):
     def test_parse_monetary_value(self):

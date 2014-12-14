@@ -11,31 +11,44 @@ from django.conf import settings
 from parsers import parser, lexer
 from parsers.exceptions import ParseError
 
-ISO_4217_PATH = os.path.join(settings.BASE_DIR, 'common', 'utility_files',
-                             'iso_4217.xml')
+UTIL_FILES = os.path.join(settings.BASE_DIR, 'common', 'utility_files')
 
+ISO_4217_PATH = os.path.join(UTIL_FILES, 'iso_4217.xml')
+CURRENCY_SYMBOLS_PATH = os.path.join(UTIL_FILES, 'currency_symbols.xml')
+
+## TODO: GET RID OF INTEGER VALUE, just use decimal everywhere
 
 @total_ordering
 class MoneyAmount(object):
-
-    def __init__(self, code_or_str, value=None):
+    def __init__(self, currency_code, value=None):
         """
         Creates a new money amount using the given value.
         If the amount is a Rational or Decimal value it will be converted
         to an integer using bankers rounding
 
-        If value is None, then the value is
+        If value is None, then the value is parsed as a formatted string
+
         """
         if value is None:
-            return MoneyAmount.parse(code_or_str)
-        else:
-            self.code = code_or_str
+            money = self.parse(currency_code)
+            self.code = money.code
+            self.currency = money.currency
+            self.value = money.value
+            return
+        self.code = currency_code
+        self.currency = Currency.from_code(currency_code)
 
-        if isinstance(value, Decimal):
-            value = Fraction.from_decimal(value)
-        elif not isinstance(value, Rational):
-            raise TypeError('Expected a rational value')
-        self.value = round(value)
+        if isinstance(value, str):
+            decimal_value = Decimal(value)
+            int_value = self.currency.to_integer_value(
+                *map(int, str(decimal_value).split('.'))
+            )
+        elif isinstance(value, int):
+            int_value = value
+        else:
+            raise TypeError('Unsupported value type {0}'.format(type(value)))
+
+        self.value = int_value
 
     @classmethod
     def parse(cls, money_amount):
@@ -43,8 +56,19 @@ class MoneyAmount(object):
         return parser.run(money_amount)
 
     @property
-    def currency(self):
-        return Currency.from_code(self.code)
+    def decimal_string_value(self):
+        """
+        Return the value as a decimal string
+        """
+        major_units, minor_units = self.currency.from_integer_value(self.value)
+        string = str(major_units)
+        if minor_units is not None:
+            string += '.'
+            if minor_units == 0:
+                string += '0' * self.currency.num_digits_in_minor_units
+            else:
+                string += str(minor_units)
+        return string
 
     def convert_to(self, curr_code):
         if self.code == curr_code:
@@ -102,14 +126,7 @@ class MoneyAmount(object):
         return str(self)
 
     def __str__(self):
-        major_units, minor_units = self.currency.from_integer_value(self.value)
-        string = '{0} {1}'.format(self.code, major_units)
-        if minor_units is not None:
-            string += '.'
-            if minor_units == 0:
-                string += '0' * self.currency.num_digits_in_minor_units
-            else:
-                string += str(minor_units)
+        string = '{0} {1}'.format(self.code, self.decimal_string_value)
         return string
 
 
@@ -124,6 +141,11 @@ class Currency(object):
     The date that the currency list was published
     """
     _date_published = None
+
+    """
+    A map of currency codes to symbols
+    """
+    _symbols = None
 
     @classmethod
     def _load_currencies_from_iso(cls):
@@ -146,6 +168,23 @@ class Currency(object):
             except KeyError:
                 currencies[currency_code] = Currency._from_element(currency_code, element)
         cls._currencies = currencies
+
+    @classmethod
+    def _load_symbols(cls):
+        def to_symbol(hex_codepoints):
+            if hex_codepoints == '':
+                return ''
+            return ''.join(chr(int(d, base=16)) for d in hex_codepoints.split(','))
+        tree = ElementTree.parse(CURRENCY_SYMBOLS_PATH)
+        root = tree.getroot()
+        symbols = dict()
+        for element in root.findall('entry'):
+            code = element.attrib['code']
+            print(code)
+            symbol = to_symbol(element.attrib['unicode-hex'])
+            print(symbol)
+            symbols[code] = symbol
+        cls._symbols = symbols
 
     def __init__(self, code, name, countries, number,
                  num_digits_in_minor_units=None):
@@ -198,9 +237,22 @@ class Currency(object):
         raise CurrencyException(
             'No ISO currency for country {0}'.format(country))
 
+    @classmethod
+    def _get_symbol(cls, code):
+        if cls._symbols is None:
+            cls._load_symbols()
+        return cls._symbols[code]
+
     @property
     def minor_units(self):
         return pow(10, self.num_digits_in_minor_units)
+
+    @property
+    def symbol(self):
+        """
+        The string representation of the currency's symbol
+        """
+        return self._get_symbol(self.code)
 
     def to_integer_value(self, major_units=0, minor_units=0):
         """
@@ -230,6 +282,7 @@ class Currency(object):
             return (currency_value, None)
         return (currency_value // self.minor_units,
                 currency_value % self.minor_units)
+
 
 class MoneyAmountParser(parser.Parser):
     LEXER_TOKENS = [
