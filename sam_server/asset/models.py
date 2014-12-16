@@ -28,6 +28,7 @@ class AssetManager(models.Manager):
 
 
 class Asset(ModelBase):
+    ## The owner of the asset.
     user = models.ForeignKey(User)
 
     objects = AssetManager()
