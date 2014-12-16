@@ -64,10 +64,10 @@ class MoneyAmount(object):
         string = str(major_units)
         if minor_units is not None:
             string += '.'
-            if minor_units == 0:
-                string += '0' * self.currency.num_digits_in_minor_units
-            else:
-                string += str(minor_units)
+            str_value = str(minor_units)
+            num_leading_zeroes = self.currency.num_digits_in_minor_units - len(str_value)
+            leading_zeroes = '0' * num_leading_zeroes
+            string += (leading_zeroes + str_value)
         return string
 
     def convert_to(self, curr_code):

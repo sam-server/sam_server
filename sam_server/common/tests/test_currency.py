@@ -79,3 +79,6 @@ class ParsingTest(TestCase):
         parser = MoneyAmountParser()
         result = parser.run('AUD 4.12')
         self.assertEqual(result, MoneyAmount('AUD', 412))
+
+        result = parser.run('USD 4.02')
+        self.assertEqual(result, MoneyAmount('USD', 402))
