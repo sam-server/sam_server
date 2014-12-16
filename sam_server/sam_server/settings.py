@@ -30,6 +30,8 @@ ALLOWED_HOSTS = []
 ## TODO: Should be https
 HOST_URI = 'http://localhost:8000'
 
+APPEND_SLASH = False
+
 # Application definition
 
 INSTALLED_APPS = (
