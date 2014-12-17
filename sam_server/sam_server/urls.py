@@ -24,7 +24,6 @@ def serve_index(request):
     """
     Serves the `index.html` from the root of the template
     """
-    print(request.user)
     if request.user.is_anonymous():
         return HttpResponseRedirect('/auth/login')
     context = {
@@ -32,7 +31,6 @@ def serve_index(request):
     }
     context.update(csrf(request))
     rendered_template = render('index.html', context)
-    print(rendered_template)
     return HttpResponse(rendered_template)
 
 

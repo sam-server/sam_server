@@ -43,13 +43,10 @@ def login_user(request):
             if password is None:
                 return HttpResponseForbidden('password required for user resource')
 
-            try:
-                user = User.objects.get_by_natural_key(User.Type.BASIC, username)
-            except User.DoesNotExist:
-                return JsonResponse({'error': 'No such user'}, status=403)
-
-            if not user.check_password(password):
-                return JsonResponse({'error': 'Invalid password'}, status=403)
+            user = authenticate(username=username, password=password)
+            if user is None:
+                return HttpResponseForbidden('invalid username or password')
+            login(request, user)
 
             remembered = resource.get('remembered', False)
 
@@ -58,9 +55,7 @@ def login_user(request):
             response = JsonResponse(result_resource)
 
             auth_token = user.get_auth_token(resource['password'])
-            print('AUTH TOKEN: {0}'.format(auth_token))
 
-            print('Remembered: {0}'.format(remembered))
             auth_token_expires = None
             if remembered:
                 auth_token_expires = datetime.now() + timedelta(weeks=1)

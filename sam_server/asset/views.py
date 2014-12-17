@@ -30,7 +30,6 @@ def asset(request, user_id=None, asset_id=None):
         if request_format == 'json':
             return partial_json_response(request, resource)
         else:
-            print('Asset: {0}'.format(resource))
             resource.update(csrf(request))
             return render('asset/asset.html', resource)
     elif request.method == 'PUT':
@@ -49,15 +48,11 @@ def update_asset(request, asset):
         ## about the valid fields as a json response
         return JsonResponse({'error': str(e)}, status=400)
 
-    print('Received update: {0}'.format(resource))
-
     if 'name' in resource:
-        print('name: {0}'.format(resource['name']))
         asset.name = resource['name']
     if 'description' in resource:
         asset.description = resource['description']
     if 'price' in resource:
-        print('price: {0}'.format(resource['price']))
         asset.price = resource['price']
     asset.save()
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
@@ -65,7 +60,6 @@ def update_asset(request, asset):
 
 @authorization_required
 def create_asset(request):
-    print(request.user)
     if request.JSON is None:
         return JsonResponse({'error', 'Expected JSON body'}, status=400)
     if request.method != 'POST':
@@ -76,7 +70,6 @@ def create_asset(request):
     except ValueError as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-    print('Received create: {0}'.format(resource))
 
     if 'name' not in resource or not resource['name']:
         return JsonResponse({'error': 'Invalid name for resource'})
@@ -98,10 +91,8 @@ def create_asset(request):
 
 def query_asset(request):
     id = request.GET.get('id')
-    print('ID: {0}'.format(id))
     if id is not None:
         asset = Asset.objects.get(id=id)
-        print(request)
         return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
 
@@ -119,7 +110,6 @@ def list_user_assets(request, user_id):
             next_page_token=uuid.uuid4(),
             assets=user_assets
         ))
-        print(json_assets)
         return partial_json_response(request, json_assets)
 
     elif request.method == 'POST':

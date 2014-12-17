@@ -180,9 +180,7 @@ class Currency(object):
         symbols = dict()
         for element in root.findall('entry'):
             code = element.attrib['code']
-            print(code)
             symbol = to_symbol(element.attrib['unicode-hex'])
-            print(symbol)
             symbols[code] = symbol
         cls._symbols = symbols
 
