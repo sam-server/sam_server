@@ -5,7 +5,7 @@ from django.conf.urls import patterns, include, url
 from django.conf.urls.static import static
 from django.contrib import admin
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.core.context_processors import csrf
 
 from ext_utils.html import render, serve_html_file
@@ -24,8 +24,11 @@ def serve_index(request):
     """
     Serves the `index.html` from the root of the template
     """
+    print(request.user)
+    if request.user.is_anonymous():
+        return HttpResponseRedirect('/auth/login')
     context = {
-        'init_url':  '/assets/user/3',
+        'init_url':  '/assets/user/{0}'.format(request.user.id),
     }
     context.update(csrf(request))
     rendered_template = render('index.html', context)
