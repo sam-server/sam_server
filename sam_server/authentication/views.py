@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import logging
+from urllib.parse import quote as url_quote
 from django.http import (JsonResponse, HttpResponseNotAllowed)
 from django.http import (HttpResponseForbidden)
 from django.shortcuts import render
@@ -52,7 +53,7 @@ def login_user(request):
 
             result_resource = user_resource.to_json(user)
             del result_resource['password']
-            response = JsonResponse(result_resource)
+            response = partial_json_response(request, result_resource)
 
             auth_token = user.get_auth_token(resource['password'])
 
@@ -62,7 +63,7 @@ def login_user(request):
 
             response.set_cookie(
                 'authToken',
-                auth_token,
+                url_quote(auth_token),
                 expires=auth_token_expires
             )
 
@@ -73,10 +74,23 @@ def login_user(request):
     else:
         return HttpResponseNotAllowed(['GET', 'POST'])
 
+"""
+def register_user(request):
+    if request.method == 'GET':
+        context = {}
+        context.update(csrf(request))
+        return render2('auth/register.html', context)
+    elif request.method == 'POST':
+        if request.JSON is None:
+            return JsonResponse({'error': 'Expected a JSON request'})
+"""
+
 
 def register(request):
     if request.method == 'GET':
-        return render(request, 'example/signup.html', {})
+        context = {}
+        context.update(csrf(request))
+        return render2('auth/register.html', context)
     elif request.method == 'POST':
         if request.JSON is None:
             return JsonResponse({'error': 'Expected a json object'}, status=400)
@@ -88,14 +102,14 @@ def register(request):
 
 def dispatch_on_auth_type(request):
     try:
-        auth_type = request.JSON['auth_type']
+        auth_type = User.Type(request.JSON['auth_type'])
     except KeyError:
         return JsonResponse(
             {'error': "No 'auth_type' in request body"},
             status=400)
     if auth_type is User.Type.GOOGLEPLUS:
         return signin_as_google_user(request)
-    elif auth_type is User.TYPE.BASIC:
+    elif auth_type is User.Type.BASIC:
         return register_basic_user(request)
     elif auth_type == User.Type.FACEBOOK:
         raise NotImplementedError('Facebook user')
@@ -167,10 +181,9 @@ def register_basic_user(request):
     username = request.JSON['username']
     try:
         user = User.objects.get_by_natural_key(User.Type.BASIC, username)
+        return JsonResponse({'error': 'User already exists'})
     except User.DoesNotExist:
         user = User.objects.create_basic_user(username=username,
                                               email=request.JSON['email'],
                                               password=request.JSON['password'])
-    user = authenticate(username=user.username, password=user.password)
-    login(request, user)
     return partial_json_response(request, user_resource.to_json_value(user))

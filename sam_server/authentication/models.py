@@ -129,7 +129,7 @@ class User(models.Model):
         BASIC = 'userpass'
 
         def __str__(self):
-            return 'User.{0}'.format(super().__str__())
+            return 'User.Type.{0}'.format(super().__str__())
 
     USERNAME_FIELD = 'user_id'
     REQUIRED_FIELDS = []
