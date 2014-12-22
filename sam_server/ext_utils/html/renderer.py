@@ -10,7 +10,7 @@ from django.http import HttpResponse
 
 # Use ASP style delimiters so that they don't conflict with the
 # native
-DELIMITERS = ('<%', '%>')
+DELIMITERS = ('{%', '%}')
 
 _settings_key = re.compile('^[A-Z][A-Z_]*$')
 APP_CONTEXT = (
@@ -33,10 +33,12 @@ def _load_template(path_to_template):
     Does not cache compiled templates if django is in DEBUG mode
     """
     webapp_root = settings.WEBAPP_ROOT
+    """
     if not settings.DEBUG:
         webapp_root = os.path.join(webapp_root, 'build/')
     else:
         webapp_root = os.path.join(webapp_root, 'web/')
+    """
     normpath = os.path.normpath(path_to_template)
     abspath = os.path.join(webapp_root, normpath)
 

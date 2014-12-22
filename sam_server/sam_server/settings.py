@@ -111,7 +111,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     # build directory of dart project
-    "/Users/ovangle/Programming/sam_server3_workspace/sam_server_web_client",
+    "/Users/ovangle/Programming/sam_server3_workspace/sam_server_web_client/web",
 )
 
 WEBAPP_ROOT = STATICFILES_DIRS[0]
