@@ -27,7 +27,7 @@ def serve_index(request):
     if request.user.is_anonymous():
         return HttpResponseRedirect('/auth/login')
     context = {
-        'init_url':  '/assets/user/{0}'.format(request.user.id),
+        'init_url':  '/asset'.format(request.user.id),
     }
     context.update(csrf(request))
     rendered_template = render('index.html', context)
@@ -54,7 +54,7 @@ urlpatterns += patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^artist/', include(artist.urls)),
     url(r'^auth/', include(authentication.urls)),
-    url(r'^assets/', include(asset.urls))
+    url(r'^asset', include(asset.urls))
 )
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
