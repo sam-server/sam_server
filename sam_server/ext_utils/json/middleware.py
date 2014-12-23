@@ -24,7 +24,6 @@ class JsonRequestMiddleware(object):
         charset = 'utf-8'
         if charset_match is not None:
             charset = charset_match.group(1)
-            print('CHARSET: {0}'.format(charset))
         try:
             content = str(request.body, encoding=charset)
             request.JSON = json.loads(content)
