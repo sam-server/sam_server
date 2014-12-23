@@ -5,7 +5,6 @@ from django.core.context_processors import csrf
 from ext_utils.json import partial_json_response
 from ext_utils.html import render
 
-from authentication.models import User
 from authentication.decorators import authorization_required
 
 from .models import Asset
@@ -17,25 +16,38 @@ ASSET_LIST_RESOURCE = AssetListResource()
 
 
 @authorization_required
-def asset(request, user_id=None, asset_id=None):
-
+def update_or_view(request, asset_id):
     try:
-        asset = Asset.objects.filter(user=user_id, id=asset_id).get()
+        asset = Asset.objects.filter(id=asset_id).get()
     except Asset.DoesNotExist:
         return JsonResponse({'error': 'Does not exist'}, status=404)
 
-    resource = ASSET_RESOURCE.to_json(asset)
     if request.method == 'GET':
-        request_format = request.GET.get('format')
-        if request_format == 'json':
-            return partial_json_response(request, resource)
-        else:
-            resource.update(csrf(request))
-            return render('asset/asset.html', resource)
+        return get_asset(request, asset)
     elif request.method == 'PUT':
         return update_asset(request, asset)
     else:
         return HttpResponseNotAllowed(['GET', 'PUT'])
+
+
+@authorization_required
+def list_or_create(request):
+    if request.method == 'GET':
+        return list_assets(request)
+    elif request.method == 'POST':
+        return create_asset(request)
+    else:
+        return HttpResponseNotAllowed(['GET', 'POST'])
+
+
+def get_asset(request, asset):
+    json_asset = ASSET_RESOURCE.to_json(asset)
+    request_format = request.GET.get('format')
+    if request_format == 'json':
+        return partial_json_response(request, asset)
+    else:
+        json_asset.update(csrf(request))
+        return render('asset/asset.html', json_asset)
 
 
 def update_asset(request, asset):
@@ -58,7 +70,19 @@ def update_asset(request, asset):
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
 
-@authorization_required
+def list_assets(request):
+    """
+    List all assets for the current user
+    """
+    user_assets = Asset.objects.filter(user=request.user).all()
+    json_assets = ASSET_LIST_RESOURCE.to_json(dict(
+        user_id=request.user.id,
+        next_page_token=uuid.uuid4(),
+        assets=user_assets
+    ))
+    return partial_json_response(request, json_assets)
+
+
 def create_asset(request):
     if request.JSON is None:
         return JsonResponse({'error', 'Expected JSON body'}, status=400)
@@ -69,7 +93,6 @@ def create_asset(request):
         resource = ASSET_RESOURCE.to_python(request.JSON)
     except ValueError as e:
         return JsonResponse({'error': str(e)}, status=400)
-
 
     if 'name' not in resource or not resource['name']:
         return JsonResponse({'error': 'Invalid name for resource'})
@@ -83,38 +106,6 @@ def create_asset(request):
     asset.save()
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
-
-
-
-
-
-
-def query_asset(request):
-    id = request.GET.get('id')
-    if id is not None:
-        asset = Asset.objects.get(id=id)
-        return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
-
-
-@authorization_required
-def list_user_assets(request, user_id):
-    if request.method == 'GET':
-        try:
-            user = User.objects.filter(pk=user_id).get()
-        except User.DoesNotExist:
-            return JsonResponse({'error': 'no such user'}, status=404)
-        ## TODO: Pagination
-        user_assets = Asset.objects.filter(user=user).all()
-        json_assets = ASSET_LIST_RESOURCE.to_json(dict(
-            user_id=user.id,
-            next_page_token=uuid.uuid4(),
-            assets=user_assets
-        ))
-        return partial_json_response(request, json_assets)
-
-    elif request.method == 'POST':
-        ## Create an object
-        raise NotImplementedError()
 
 
 

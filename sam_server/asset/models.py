@@ -66,8 +66,7 @@ class Asset(ModelBase):
     price = property(_get_price, _set_price)
 
     def get_absolute_url(self):
-        return ('/assets/user/{0}/asset/{1}'
-                .format(self.user.id, self.id.hex))
+        return '/asset/{0}'.format(self.id.hex)
 
     @property
     def qr_code(self):
