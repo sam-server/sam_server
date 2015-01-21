@@ -71,3 +71,16 @@ class Asset(ModelBase):
     @property
     def qr_code(self):
         return HOST_URI + self.get_absolute_url()
+
+class AssetAttachement(ModelBase):
+    asset = models.ForeignKey(Asset)
+
+    name = models.CharField(max_length=128)
+    ## The mime type of the attachment
+    type = models.CharField(max_length=64)
+
+    location = models.FilePathField()
+
+    upload_date = models.DateField(auto_now=True)
+
+

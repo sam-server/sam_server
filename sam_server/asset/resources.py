@@ -29,5 +29,13 @@ class AssetListResource(ModelResource):
     assets = ListResource(item_resource=AssetResource())
 
 
+class AssetAttachmentResource(ModelResource):
+    KIND = 'asset#attachment'
+
+    name = StringResource()
+    asset = UUIDResource()
+
+    def get_asset(self, model):
+        return model.asset.id
 
 

@@ -1,3 +1,4 @@
+import json
 import uuid
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.core.context_processors import csrf
@@ -41,13 +42,16 @@ def list_or_create(request):
 
 
 def get_asset(request, asset):
-    json_asset = ASSET_RESOURCE.to_json(asset)
+
     request_format = request.GET.get('format')
     if request_format == 'json':
         return partial_json_response(request, asset)
     else:
-        json_asset.update(csrf(request))
-        return render('asset/asset.html', json_asset)
+        json_asset = json.dumps(ASSET_RESOURCE.to_json(asset))
+
+        render_data = {'resource': json_asset}
+        render_data.update(csrf(request))
+        return render('asset/asset.html', render_data)
 
 
 def update_asset(request, asset):
