@@ -28,10 +28,6 @@ from pystache.renderer import Renderer
 NGINX_CONFIG = 'sam_server/nginx.conf'
 DELIMITERS = ('${', '}')
 
-## Test to see whether the current platform is osx or linux
-_IS_OSX = sys.platform == 'darwin'
-_IS_LINUX = sys.platform == 'linux'
-
 ## If nginx installed using brew on OSX, this won't exist.
 ## Create the directory and edit '/usr/local/etc/nginx/sites-enabled/nginx.conf'
 ## In the http block, add this line:
@@ -39,7 +35,6 @@ _IS_LINUX = sys.platform == 'linux'
 SITES_ENABLED_DIR = '/etc/nginx/sites-enabled'
 
 SIMPLE_SETTING = re.compile('^[A-Z_]+$')
-
 
 DJANGO_SETTINGS = {
     k: getattr(settings, k)
@@ -52,10 +47,8 @@ def _check_envvar_exists(envvar):
     Check that the specified variable is defined either in the environment
     of the user or in the django settings module
     """
-    envvar_exists = envvar in os.environ or envvar in DJANGO_SETTINGS
-    if not envvar_exists:
-        print('{0} was not defined in environment or django settings'
-              .format(envvar))
+    if envvar not in DJANGO_SETTINGS:
+        print('{0} was not defined in django settings module'.format(envvar))
         sys.exit(1)
 
 
@@ -113,8 +106,8 @@ def enable_site(config_file):
 def restart_nginx():
     if sys.platform == 'darwin':
         subprocess.call(['nginx', '-s', 'reload'])
-    elif == 'linux':
-        print('Restarting nginx (requires root permissions')
+    elif sys.platform == 'linux':
+        print('Restarting nginx (requires root permissions)')
         subprocess.call(['/usr/bin/sudo', '/etc/init.d/nginx', 'restart'])
     else:
         print('Could not restart nginx on {0}'.format(os.name))
@@ -122,8 +115,10 @@ def restart_nginx():
 
 if __name__ == '__main__':
     _check_envvar_exists('PROJECT_ROOT')
-    os.chdir(os.environ['PROJECT_ROOT'])
-    print('project_root', os.environ['PROJECT_ROOT'])
+    proj_root = DJANGO_SETTINGS['PROJECT_ROOT']
+
+    print('chdir {0}'.format(proj_root))
+    os.chdir(proj_root)
     config_file = tempfile.NamedTemporaryFile(delete=False)
     compile_config_file(config_file.name)
     enable_site(config_file.name)
