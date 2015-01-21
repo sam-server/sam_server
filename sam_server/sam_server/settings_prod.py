@@ -28,7 +28,7 @@ ALLOWED_HOSTS = []
 
 ## The production hostname of the server
 ## TODO: Should be https
-HOST_URI = 'http://localhost:8000'
+HOST_URI = 'http://sam.harantech.com'
 
 APPEND_SLASH = False
 
@@ -111,7 +111,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     # build directory of dart project
-    "/home/ovangle_gmail_com/sam_server_web_client/build/web"
+    "/home/ovangle_gmail_com/sam_server_web_client/build/web",
 )
 
 WEBAPP_ROOT = STATICFILES_DIRS[0]
