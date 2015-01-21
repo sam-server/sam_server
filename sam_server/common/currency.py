@@ -17,6 +17,7 @@ ISO_4217_PATH = os.path.join(UTIL_FILES, 'iso_4217.xml')
 CURRENCY_SYMBOLS_PATH = os.path.join(UTIL_FILES, 'currency_symbols.xml')
 
 ## TODO: GET RID OF INTEGER VALUE, just use decimal everywhere
+## TODO: Money should be formatted as '{decimal_value} {currency_code}'
 
 @total_ordering
 class MoneyAmount(object):

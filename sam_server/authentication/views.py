@@ -20,7 +20,7 @@ from .resources import UserResource
 
 logger = logging.getLogger(__name__)
 
-user_resource = UserResource()
+USER_RESOURCE = UserResource()
 
 
 def login_user(request):
@@ -37,7 +37,8 @@ def login_user(request):
                 {'error': 'not a json request'},
                 400
             )
-        resource = user_resource.to_python(request.JSON)
+        print(request.JSON)
+        resource = USER_RESOURCE.to_python(request.JSON)
         username = resource.get('username')
         if username is not None:
             password = resource.get('password')
@@ -51,7 +52,7 @@ def login_user(request):
 
             remembered = resource.get('remembered', False)
 
-            result_resource = user_resource.to_json(user)
+            result_resource = USER_RESOURCE.to_json(user)
             del result_resource['password']
             response = partial_json_response(request, result_resource)
 
@@ -64,7 +65,9 @@ def login_user(request):
             response.set_cookie(
                 'authToken',
                 url_quote(auth_token),
-                expires=auth_token_expires
+                expires=auth_token_expires,
+                ## TODO: Authentication token should be httponly
+                #httponly=True
             )
 
             return response
@@ -161,7 +164,7 @@ def signin_as_google_user(request):
 
     user = authenticate(id_token=credentials.id_token)
     login(request, user)
-    return partial_json_response(request, user_resource.to_json_value(user))
+    return partial_json_response(request, USER_RESOURCE.to_json(user))
 
 
 def register_basic_user(request):
@@ -186,4 +189,15 @@ def register_basic_user(request):
         user = User.objects.create_basic_user(username=username,
                                               email=request.JSON['email'],
                                               password=request.JSON['password'])
-    return partial_json_response(request, user_resource.to_json_value(user))
+
+    response = partial_json_response(request, USER_RESOURCE.to_json(user))
+    auth_token = user.get_auth_token(request.JSON['password'])
+    print('AUTH TOKEN: {0}'.format(auth_token))
+
+    response.set_cookie(
+        'authToken',
+        url_quote(auth_token),
+        ## TODO: auth token should be http only.
+        # httponly=True
+    )
+    return response
