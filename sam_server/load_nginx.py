@@ -54,7 +54,8 @@ def _check_envvar_exists(envvar):
     """
     envvar_exists = envvar in os.environ or envvar in DJANGO_SETTINGS
     if not envvar_exists:
-        print('{0} was not defined in environment or django settings')
+        print('{0} was not defined in environment or django settings'
+              .format(envvar))
         sys.exit(1)
 
 
@@ -112,7 +113,7 @@ def enable_site(config_file):
 def restart_nginx():
     if sys.platform == 'darwin':
         subprocess.call(['nginx', '-s', 'reload'])
-    elif os.name == 'linux':
+    elif == 'linux':
         print('Restarting nginx (requires root permissions')
         subprocess.call(['/usr/bin/sudo', '/etc/init.d/nginx', 'restart'])
     else:
