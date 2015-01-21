@@ -20,7 +20,7 @@ PROJECT_ROOT = BASE_DIR
 SECRET_KEY = 'tzxnf8yo$xxky_zuvcx82%hj2&0-fto#ak0is*nb9s3lav%#*x'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 TEMPLATE_DEBUG = True
 
@@ -111,7 +111,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     # build directory of dart project
-    "/Users/ovangle/Programming/sam_server3_workspace/sam_server_web_client/web",
+    "/home/ovangle_gmail_com/sam_server_web_client/build/web"
 )
 
 WEBAPP_ROOT = STATICFILES_DIRS[0]
