@@ -27,7 +27,12 @@ class AssetManager(models.Manager):
         asset = Asset(user=user, **kwargs)
 
 
+def _asset_image_upload_location(asset, filename):
+    return 'assets/{0}/images/{1}'.format(asset.id, filename)
+
+
 class Asset(ModelBase):
+
     ## The owner of the asset.
     user = models.ForeignKey(User)
 
@@ -52,6 +57,11 @@ class Asset(ModelBase):
 
     date_purchased = models.DateField(null=True)
 
+    image = models.FileField(
+        upload_to=_asset_image_upload_location,
+        blank=True
+    )
+
     def _get_price(self):
         if not self.price_currency_code:
             return None
@@ -71,6 +81,7 @@ class Asset(ModelBase):
     @property
     def qr_code(self):
         return HOST_URI + self.get_absolute_url()
+
 
 class AssetAttachement(ModelBase):
     asset = models.ForeignKey(Asset)
