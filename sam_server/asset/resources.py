@@ -17,8 +17,21 @@ class AssetResource(ModelResource):
     price = MoneyAmountResource(required=False)
     date_purchased = DateTimeResource(required=False)
 
+    image_src = StringResource(required=False)
+    ## The resource to upload the file
+    image = FileResource(required=False)
+
     def get_user_id(self, model):
         return model.user.id
+
+    def get_image_src(self, model):
+        print('Image: {0}'.format(model.image))
+        if model.image == '':
+            return None
+        return model.image.url
+
+    def get_image(self, model):
+        return None
 
 
 class AssetListResource(ModelResource):
