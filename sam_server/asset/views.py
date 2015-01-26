@@ -1,7 +1,10 @@
 import json
 import uuid
+import base64
+import io
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.core.context_processors import csrf
+from django.core.files import File
 
 from ext_utils.json import partial_json_response
 from ext_utils.html import render
@@ -32,7 +35,7 @@ def update_or_view(request, asset_id):
 
 
 @authorization_required
-def list_or_create(request):
+def list(request):
     if request.method == 'GET':
         return list_assets(request)
     elif request.method == 'POST':
@@ -41,10 +44,26 @@ def list_or_create(request):
         return HttpResponseNotAllowed(['GET', 'POST'])
 
 
-def get_asset(request, asset):
+@authorization_required
+def create(request):
+    if request.method == 'GET':
+        new_id = uuid.uuid4().hex
+        resource = {
+            'asset_id': new_id,
+            'qr_code': HOST_URI + '/asset/{0}'.format(new_id)
+        }
+        data = {'resource': resource}
+        data.update(csrf(request))
+        return render('asset/create_asset.html', data)
+    elif request.method == 'POST':
+        return create_asset(request)
+    else:
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
-    request_format = request.GET.get('format')
-    if request_format == 'json':
+
+def get_asset(request, asset):
+    request_format = request.GET.get('format', 'document')
+    if request_format.lower() == 'json':
         return partial_json_response(request, asset)
     else:
         json_asset = json.dumps(ASSET_RESOURCE.to_json(asset))
@@ -70,6 +89,10 @@ def update_asset(request, asset):
         asset.description = resource['description']
     if 'price' in resource:
         asset.price = resource['price']
+    if 'image' in resource and resource['image']:
+        image = resource['image'][0]
+        image_file = File(io.BytesIO(image.body_bytes))
+        asset.image.save(image.name, image_file)
     asset.save()
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
@@ -79,12 +102,20 @@ def list_assets(request):
     List all assets for the current user
     """
     user_assets = Asset.objects.filter(user=request.user).all()
+
     json_assets = ASSET_LIST_RESOURCE.to_json(dict(
         user_id=request.user.id,
         next_page_token=uuid.uuid4(),
         assets=user_assets
     ))
-    return partial_json_response(request, json_assets)
+    request_format = request.GET.get('format', '')
+    if request_format.lower() == 'json':
+        return partial_json_response(request, json_assets)
+    else:
+        render_data = {'resource': json.dumps(json_assets)}
+        render_data.update(csrf(request))
+        print(render_data)
+        return render('index.html', render_data)
 
 
 def create_asset(request):
@@ -92,7 +123,7 @@ def create_asset(request):
         return JsonResponse({'error', 'Expected JSON body'}, status=400)
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-
+    print('create_asset')
     try:
         resource = ASSET_RESOURCE.to_python(request.JSON)
     except ValueError as e:
@@ -107,8 +138,11 @@ def create_asset(request):
         description=resource['description'] or '',
         price=resource['price']
     )
+
     asset.save()
-    return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
+    response = partial_json_response(request, ASSET_RESOURCE.to_json(asset))
+    print(response)
+    return response
 
 
 
