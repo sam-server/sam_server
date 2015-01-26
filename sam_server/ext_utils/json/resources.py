@@ -1,9 +1,10 @@
 from datetime import datetime
 from enum import Enum
-from operator import attrgetter
 import uuid
+import tempfile
+import base64
 
-from django.db import models
+
 from dateutil.parser import parse as parse_date
 
 _NONE_TYPE = type(None)
@@ -204,6 +205,73 @@ class DictResource(Resource):
             k: self.value_resource.to_json(v)
             for k, v in value.items()
         }
+
+
+class File(object):
+    ## TODO, temporary file object for handling file inputs.
+    ## Remove in preference of something more useful
+
+    def __init__(self, mime_type, name, body):
+        self.mime_type = mime_type
+        self.name = name
+        ## Base64 encoded body
+        self.body = body
+
+    @property
+    def body_bytes(self):
+        return base64.b64decode(self.body)
+
+    def __str__(self):
+        return 'resources.File<{0.name}>'.format(self)
+
+
+class FileResource(Resource):
+    """
+    A FileResource represents a list of File type objects.
+    Each File has a mime_type, name and base64 encoded body
+    """
+
+    def _file_to_python(self, resource_item):
+        if resource_item is None:
+            raise ValueError('None in file list')
+        try:
+            mime_type = resource_item['type']
+        except KeyError:
+            raise ValueError("No 'type' in file resource")
+        try:
+            name = resource_item['name']
+        except KeyError:
+            raise ValueError("No 'name' in file resource")
+        try:
+            body = resource_item['body']
+        except KeyError:
+            raise ValueError("No 'body' in file resource")
+        return File(mime_type, name, body)
+
+    def _file_to_json(self, resource_item):
+        if not isinstance(resource_item, File):
+            raise ValueError("Expected a 'file'")
+        return {
+            'type': resource_item.mime_type,
+            'name': resource_item.name,
+            'body': resource_item.body
+        }
+
+    def to_python(self, resource):
+        self.check_mandatory(resource)
+        if resource is None:
+            return resource
+        if not hasattr(resource, '__iter__'):
+            raise ValueError('Expected an iterable value for file resource')
+        resource = list(resource)
+        return list(map(self._file_to_python, resource))
+
+    def to_json(self, resource):
+        self.check_mandatory(resource)
+        if resource is None:
+            return []
+        resource = list(resource)
+        return list(map(self._file_to_json, resource))
 
 
 class _ModelResourceMeta(type):
