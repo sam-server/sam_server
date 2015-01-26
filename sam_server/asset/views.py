@@ -92,7 +92,7 @@ def update_asset(request, asset):
     if 'image' in resource and resource['image']:
         image = resource['image'][0]
         image_file = File(io.BytesIO(image.body_bytes))
-        asset.image.save(image.name, image_file)
+        asset.image.save(image.name, image_file, save=False)
     asset.save()
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
@@ -138,6 +138,10 @@ def create_asset(request):
         description=resource['description'] or '',
         price=resource['price']
     )
+    if 'image' in resource and resource['image']:
+        image = resource['image'][0]
+        image_file = File(io.BytesIO(image.body_bytes))
+        asset.image.save(image.name, image_file, save=False)
 
     asset.save()
     response = partial_json_response(request, ASSET_RESOURCE.to_json(asset))
