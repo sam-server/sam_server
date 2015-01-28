@@ -37,7 +37,6 @@ def login_user(request):
                 {'error': 'not a json request'},
                 400
             )
-        print(request.JSON)
         resource = USER_RESOURCE.to_python(request.JSON)
         username = resource.get('username')
         if username is not None:
@@ -159,7 +158,6 @@ def signin_as_google_user(request):
     try:
         user = User.objects.get_by_natural_key(User.Type.GOOGLE, sub)
     except User.DoesNotExist:
-        print('CREATING G+ user')
         user = User.objects.create_googleplus_user(credentials)
 
     user = authenticate(id_token=credentials.id_token)
@@ -192,7 +190,6 @@ def register_basic_user(request):
 
     response = partial_json_response(request, USER_RESOURCE.to_json(user))
     auth_token = user.get_auth_token(request.JSON['password'])
-    print('AUTH TOKEN: {0}'.format(auth_token))
 
     response.set_cookie(
         'authToken',

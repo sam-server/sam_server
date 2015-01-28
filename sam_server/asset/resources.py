@@ -25,7 +25,6 @@ class AssetResource(ModelResource):
         return model.user.id
 
     def get_image_src(self, model):
-        print('Image: {0}'.format(model.image))
         if model.image == '':
             return None
         return model.image.url

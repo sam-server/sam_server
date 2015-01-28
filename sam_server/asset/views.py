@@ -114,7 +114,6 @@ def list_assets(request):
     else:
         render_data = {'resource': json.dumps(json_assets)}
         render_data.update(csrf(request))
-        print(render_data)
         return render('index.html', render_data)
 
 
@@ -123,7 +122,6 @@ def create_asset(request):
         return JsonResponse({'error', 'Expected JSON body'}, status=400)
     if request.method != 'POST':
         return HttpResponseNotAllowed(['POST'])
-    print('create_asset')
     try:
         resource = ASSET_RESOURCE.to_python(request.JSON)
     except ValueError as e:
@@ -145,7 +143,6 @@ def create_asset(request):
 
     asset.save()
     response = partial_json_response(request, ASSET_RESOURCE.to_json(asset))
-    print(response)
     return response
 
 

@@ -26,7 +26,6 @@ try:
     @timer(3)
     def change_code_graceful_reload(sig):
         if settings.DEBUG and autoreload.code_changed():
-            print('Code changed. Reloading...')
             uwsgi.reload()
 except ImportError:
     ## uwsgi module only available when running
