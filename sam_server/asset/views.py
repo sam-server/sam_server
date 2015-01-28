@@ -1,7 +1,7 @@
 import json
 import uuid
-import base64
 import io
+
 from django.http import JsonResponse, HttpResponseNotAllowed
 from django.core.context_processors import csrf
 from django.core.files import File
@@ -11,7 +11,7 @@ from ext_utils.html import render
 
 from authentication.decorators import authorization_required
 
-from .models import Asset
+from .models import Asset, HOST_URI
 from .resources import AssetResource, AssetListResource
 
 
