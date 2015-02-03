@@ -1,7 +1,9 @@
 from functools import wraps
 
+from urllib.parse import quote_plus
+
 from django.contrib.auth import authenticate, login
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.utils.decorators import available_attrs
 
 
@@ -19,9 +21,12 @@ def authorization_required(view_func):
             try:
                 auth_header = request.META['HTTP_AUTHORIZATION']
             except KeyError:
-                return JsonResponse({
-                    'error': 'No Authorization header on request'
-                }, status=403)
+                return HttpResponseRedirect(
+                    '/auth/login?cb={0}'.format(quote_plus(request.path))
+                )
+                # return JsonResponse({
+                #    'error': 'No Authorization header on request'
+                #}, status=403)
             user = authenticate(auth_header=auth_header)
             if user is None:
                 return JsonResponse({
