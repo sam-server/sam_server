@@ -58,8 +58,10 @@ class Asset(ModelBase):
     date_purchased = models.DateField(null=True)
 
     image = models.FileField(
+        max_length=1024,
         upload_to=_asset_image_upload_location,
-        blank=True
+        blank=True,
+        null=True
     )
 
     def _get_price(self):
