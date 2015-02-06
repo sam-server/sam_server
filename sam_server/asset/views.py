@@ -89,10 +89,14 @@ def update_asset(request, asset):
         asset.description = resource['description']
     if 'price' in resource:
         asset.price = resource['price']
-    if 'image' in resource and resource['image']:
-        image = resource['image'][0]
-        image_file = File(io.BytesIO(image.body_bytes))
-        asset.image.save(image.name, image_file, save=False)
+    if 'image' in resource:
+        if resource['image']:
+            image = resource['image'][0]
+            image_file = File(io.BytesIO(image.body_bytes))
+            asset.image.save(image.name, image_file, save=False)
+        else:
+            ## Clear the image
+            asset.image.delete(save=False)
     asset.save()
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
