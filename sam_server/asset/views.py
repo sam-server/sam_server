@@ -30,8 +30,10 @@ def update_or_view(request, asset_id):
         return get_asset(request, asset)
     elif request.method == 'PUT':
         return update_asset(request, asset)
+    elif request.method == 'DELETE':
+        return delete_asset(request, asset)
     else:
-        return HttpResponseNotAllowed(['GET', 'PUT'])
+        return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
 
 
 @authorization_required
@@ -101,11 +103,17 @@ def update_asset(request, asset):
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
 
+def delete_asset(request, asset):
+    asset.deleted = True
+    asset.save()
+    return JsonResponse({'deleted': True}, status=200)
+
+
 def list_assets(request):
     """
     List all assets for the current user
     """
-    user_assets = Asset.objects.filter(user=request.user).all()
+    user_assets = Asset.objects.filter(user=request.user, deleted=False).all()
 
     json_assets = ASSET_LIST_RESOURCE.to_json(dict(
         user_id=request.user.id,
