@@ -64,6 +64,8 @@ class Asset(ModelBase):
         null=True
     )
 
+    deleted = models.BooleanField(default=False)
+
     def _get_price(self):
         if not self.price_currency_code:
             return None
