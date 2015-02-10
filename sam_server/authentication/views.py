@@ -182,7 +182,8 @@ def register_basic_user(request):
     username = request.JSON['username']
     try:
         user = User.objects.get_by_natural_key(User.Type.BASIC, username)
-        return JsonResponse({'error': 'User already exists'})
+        return JsonResponse({'error': 'User already exists'},
+                            status=400)
     except User.DoesNotExist:
         user = User.objects.create_basic_user(username=username,
                                               email=request.JSON['email'],
