@@ -37,24 +37,18 @@ def serve_index(request):
 
 
 ## TODO: /media files need to be added to nginx config
-if settings.DEBUG:
-    urlpatterns = static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-else:
-    urlpatterns = []
+urlpatterns = static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 ## Hacks to get dart working in the development environment
 ## TODO: Should be handled better than this.
-if settings.DEBUG:
-    urlpatterns += [
-        url(r'^(?P<path>.*?\.dart)$', serve_dart_file),
-        url(r'^(?P<path>.*?\.html)$', serve_html_file),
-        url(r'^(?P<path>.*?\.js)$', serve_js_file),
-        url(r'^(?P<path>.*?\.css)$', serve_css_file),
-        url(r'^(?P<path>.*?\.svg)$', serve_svg_file),
-    ]
-else:
-    urlpatterns = []
+urlpatterns += [
+    url(r'^(?P<path>.*?\.dart)$', serve_dart_file),
+    url(r'^(?P<path>.*?\.html)$', serve_html_file),
+    url(r'^(?P<path>.*?\.js)$', serve_js_file),
+    url(r'^(?P<path>.*?\.css)$', serve_css_file),
+    url(r'^(?P<path>.*?\.svg)$', serve_svg_file),
+]
 
 urlpatterns += [
     url(r'^$', serve_index),
