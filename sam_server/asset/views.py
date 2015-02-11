@@ -69,7 +69,7 @@ def get_asset(request, asset):
         return partial_json_response(request, asset)
     else:
         json_asset = json.dumps(ASSET_RESOURCE.to_json(asset))
-
+        print('JSON asset: {0}'.format(json_asset))
         render_data = {'resource': json_asset}
         render_data.update(csrf(request))
         return render('asset/asset.html', render_data)
@@ -99,6 +99,10 @@ def update_asset(request, asset):
         else:
             ## Clear the image
             asset.image.delete(save=False)
+    if 'use' in resource:
+        asset.use = resource['use']
+    if 'model_number' in resource:
+        asset.model_number = resource['model_number']
     asset.save()
     return partial_json_response(request, ASSET_RESOURCE.to_json(asset))
 
@@ -146,7 +150,9 @@ def create_asset(request):
         user=request.user,
         name=resource['name'],
         description=resource['description'] or '',
-        price=resource['price']
+        price=resource['price'],
+        use=resource['use'] or '',
+        model_number=resource['model_number'] or ''
     )
     if 'image' in resource and resource['image']:
         image = resource['image'][0]
