@@ -69,7 +69,6 @@ def get_asset(request, asset):
         return partial_json_response(request, asset)
     else:
         json_asset = json.dumps(ASSET_RESOURCE.to_json(asset))
-        print('JSON asset: {0}'.format(json_asset))
         render_data = {'resource': json_asset}
         render_data.update(csrf(request))
         return render('asset/asset.html', render_data)
