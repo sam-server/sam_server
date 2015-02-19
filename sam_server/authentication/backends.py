@@ -34,7 +34,8 @@ class BasicUserBackend(BackendBase):
             return self._authenticate_header(kwargs['auth_header'])
         elif 'username' in kwargs:
             return self._authenticate_userpass(username=kwargs['username'],
-                                               password=kwargs.get('password'))
+                                               password=kwargs.get('password'),
+                                               force=kwargs.get('force'))
         else:
             return None
 
@@ -53,14 +54,14 @@ class BasicUserBackend(BackendBase):
             raise PermissionDenied('Invalid authorization header')
         return self._authenticate_userpass(username=username, password=password)
 
-    def _authenticate_userpass(self, username, password=None):
-        if password is None:
+    def _authenticate_userpass(self, username, password=None, force=False):
+        if not force and password is None:
             return None
         UserModel = get_user_model()
         try:
             user = UserModel.objects.get_by_natural_key(
                 UserModel.Type.BASIC, username)
-            if user.check_password(password):
+            if force or user.check_password(password):
                 return user
         except UserModel.DoesNotExist:
             return None

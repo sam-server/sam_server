@@ -191,6 +191,7 @@ def register_basic_user(request):
 
     response = partial_json_response(request, USER_RESOURCE.to_json(user))
     auth_token = user.get_auth_token(request.JSON['password'])
+    user = authenticate(username=username, force=True)
 
     response.set_cookie(
         'authToken',
